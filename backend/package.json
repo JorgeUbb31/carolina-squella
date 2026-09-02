@@ -1,0 +1,9 @@
+{
+  "name": "carolina-squella-backend",
+  "version": "1.0.0",
+  "description": "E-commerce backend API",
+  "private": true,
+  "scripts": {
+    "dev": "php artisan serve"
+  }
+}
