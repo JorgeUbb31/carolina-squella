@@ -97,7 +97,7 @@ npm run dev
 
 ```bash
 # Crear base de datos
-mysql -u root -p -e "CREATE DATABASE carolina_squella;"
+createdb -U postgres carolina_squella
 
 # Ejecutar migraciones
 php artisan migrate
@@ -107,10 +107,11 @@ php artisan migrate
 ```env
 APP_NAME="Carolina Squella"
 APP_URL=http://localhost:8000
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
+DB_PORT=5432
 DB_DATABASE=carolina_squella
-DB_USERNAME=root
+DB_USERNAME=postgres
 DB_PASSWORD=
 ```
 

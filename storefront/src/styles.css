@@ -1,0 +1,274 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1d1d1f;
+  background: #f7f3ee;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8f1ea 0%, #f4f5f7 100%);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font: inherit;
+}
+
+.container {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.topbar {
+  background: #1d1d1f;
+  color: white;
+  padding: 12px 0;
+  font-size: 0.85rem;
+}
+
+.topbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header {
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  color: #3d3d3d;
+  font-weight: 600;
+}
+
+.nav a:hover {
+  color: #8b5e3c;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.primary-btn, .secondary-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #8b5e3c;
+  color: white;
+}
+
+.secondary-btn {
+  background: #f2e7dc;
+  color: #3d2a20;
+}
+
+.hero {
+  padding: 56px 0 34px;
+}
+
+.hero .container {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  gap: 36px;
+}
+
+.eyebrow {
+  color: #8b5e3c;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.hero h1 {
+  margin: 12px 0 16px;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.hero p {
+  font-size: 1.08rem;
+  color: #4e4e4e;
+  max-width: 600px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.hero-card {
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(38, 26, 18, 0.12);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.hero-card img {
+  width: 100%;
+  height: 620px;
+  object-fit: cover;
+}
+
+.section {
+  padding: 30px 0 64px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.category-card {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(66, 49, 36, 0.05);
+}
+
+.category-card strong {
+  display: block;
+  margin-top: 14px;
+  font-size: 1.1rem;
+}
+
+.product-card {
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 12px 35px rgba(32, 25, 23, 0.06);
+}
+
+.product-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+.product-body {
+  padding: 18px;
+}
+
+.product-body h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.meta {
+  color: #6d6d6d;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.badge {
+  background: #f2e7dc;
+  color: #8b5e3c;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .hero .container,
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero .container,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .header .container {
+    flex-wrap: wrap;
+  }
+}
