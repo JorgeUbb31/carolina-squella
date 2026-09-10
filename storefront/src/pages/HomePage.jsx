@@ -1,72 +1,23 @@
 import { useEffect, useState } from 'react'
-import { fetchCategories, fetchProducts } from '../services/api'
-
-const fallbackCategories = [
-  { name: 'Blackout', description: 'Oscuridad total y aislamiento' },
-  { name: 'Translúcidas', description: 'Luz suave y elegante' },
-  { name: 'Lino', description: 'Texturas naturales' },
-  { name: 'Accesorios', description: 'Montaje y complementos' }
-]
-
-const fallbackProducts = [
-  {
-    name: 'Cortina Blackout Nube',
-    material: 'Microfibra',
-    color: 'Gris',
-    price: 48900,
-    image_url: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80',
-    badge: 'Top seller'
-  },
-  {
-    name: 'Cortina Translúcida Aura',
-    material: 'Poliéster',
-    color: 'Blanco',
-    price: 35900,
-    image_url: 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=900&q=80',
-    badge: 'Nuevo'
-  },
-  {
-    name: 'Tela de Cortina Linen Natural',
-    material: 'Lino',
-    color: 'Natural',
-    price: 18900,
-    image_url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=900&q=80',
-    badge: 'Premium'
-  },
-  {
-    name: 'Roller Minimalista Oak',
-    material: 'Tejido técnico',
-    color: 'Marrón',
-    price: 42900,
-    image_url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=900&q=80',
-    badge: 'Modern'
-  }
-]
-
-const formatPrice = (value) => {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP'
-  }).format(Number(value ?? 0))
-}
+import { formatPrice, loadHomeData } from '../services/home.service'
 
 export default function HomePage() {
-  const [categories, setCategories] = useState(fallbackCategories)
-  const [products, setProducts] = useState(fallbackProducts)
+  const [categories, setCategories] = useState([])
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [categoriesData, productsData] = await Promise.all([
-          fetchCategories(),
-          fetchProducts()
-        ])
+        setError('')
+        const homeData = await loadHomeData()
 
-        if (categoriesData.length) setCategories(categoriesData)
-        if (productsData.length) setProducts(productsData)
+        setCategories(homeData.categories)
+        setProducts(homeData.products)
       } catch (error) {
         console.error('No se pudo cargar la tienda:', error)
+        setError(error.message)
       } finally {
         setLoading(false)
       }
@@ -118,7 +69,13 @@ export default function HomePage() {
             </div>
 
             <div className="hero-card">
-              <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1000&q=80" alt="Interior con cortinas" />
+              {loading ? (
+                <p>Cargando imagen...</p>
+              ) : products[0]?.image_url ? (
+                <img src={products[0].image_url} alt={products[0].name} />
+              ) : (
+                <p>No hay productos disponibles.</p>
+              )}
             </div>
           </div>
         </section>
@@ -128,15 +85,23 @@ export default function HomePage() {
             <div className="section-title">
               <h2>Categorías</h2>
             </div>
-            <div className="grid">
-              {(categories || []).map((category) => (
-                <article className="category-card" key={category.slug || category.name}>
-                  <div className="badge">Colección</div>
-                  <strong>{category.name}</strong>
-                  <p>{category.description}</p>
-                </article>
-              ))}
-            </div>
+            {error ? (
+              <p>{error}</p>
+            ) : loading ? (
+              <p>Cargando categorías...</p>
+            ) : categories.length === 0 ? (
+              <p>No hay categorías disponibles.</p>
+            ) : (
+              <div className="grid">
+                {categories.map((category) => (
+                  <article className="category-card" key={category.slug}>
+                    <div className="badge">{category.products_count ?? 0} productos</div>
+                    <strong>{category.name}</strong>
+                    <p>{category.description}</p>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -146,13 +111,22 @@ export default function HomePage() {
               <h2>Productos destacados</h2>
             </div>
 
-            {loading ? (
+            {error ? (
+              <div>
+                <p>{error}</p>
+                <button className="primary-btn" onClick={() => window.location.reload()}>
+                  Reintentar
+                </button>
+              </div>
+            ) : loading ? (
               <p>Cargando productos...</p>
+            ) : products.length === 0 ? (
+              <p>No hay productos disponibles.</p>
             ) : (
               <div className="grid">
-                {(products || []).map((product) => (
+                {products.map((product) => (
                   <article className="product-card" key={product.slug || product.name}>
-                    <img src={product.image_url || product.image || 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80'} alt={product.name} />
+                    <img src={product.image_url} alt={product.name} />
                     <div className="product-body">
                       <div className="badge">{product.badge || 'Destacado'}</div>
                       <h3>{product.name}</h3>
