@@ -14,8 +14,9 @@ async function request(path) {
   }
 
   const payload = await response.json()
-  return Array.isArray(payload) ? payload : (payload.data ?? [])
+  return Array.isArray(payload) ? payload : (payload.data ?? payload)
 }
 
 export const fetchCategories = () => request('/categories')
 export const fetchProducts = () => request('/products')
+export const fetchProduct = (slug) => request(`/products/${slug}`)

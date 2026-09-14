@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { formatPrice, loadHomeData } from '../services/home.service'
 
-export default function HomePage() {
+export default function HomePage({ onAddToCart }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,23 +35,6 @@ export default function HomePage() {
           <span>Atención personalizada</span>
         </div>
       </div>
-
-      <header className="header">
-        <div className="container">
-          <div className="brand">Carolina Squella</div>
-          <nav className="nav">
-            <a href="#">Inicio</a>
-            <a href="#">Cortinas</a>
-            <a href="#">Telas</a>
-            <a href="#">Blackout</a>
-            <a href="#">Accesorios</a>
-          </nav>
-          <div className="actions">
-            <button className="secondary-btn">Buscar</button>
-            <button className="primary-btn">Carrito</button>
-          </div>
-        </div>
-      </header>
 
       <main>
         <section className="hero">
@@ -126,17 +110,19 @@ export default function HomePage() {
               <div className="grid">
                 {products.map((product) => (
                   <article className="product-card" key={product.slug || product.name}>
-                    <img src={product.image_url} alt={product.name} />
+                    <Link to={`/products/${product.slug}`}>
+                      <img src={product.image_url} alt={product.name} />
+                    </Link>
                     <div className="product-body">
                       <div className="badge">{product.badge || 'Destacado'}</div>
-                      <h3>{product.name}</h3>
+                      <h3><Link to={`/products/${product.slug}`}>{product.name}</Link></h3>
                       <div className="meta">
                         <span>{product.material || 'Textil'}</span>
                         <span>{product.color || 'Variado'}</span>
                       </div>
                       <div className="price-row">
                         <span className="price">{formatPrice(product.price)}</span>
-                        <button className="primary-btn">Añadir</button>
+                        <button className="primary-btn" onClick={() => onAddToCart(product)}>Añadir</button>
                       </div>
                     </div>
                   </article>
