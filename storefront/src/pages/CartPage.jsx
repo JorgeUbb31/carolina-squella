@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../services/home.service'
 
-export default function CartPage({ cartItems, onUpdateQuantity, onRemove }) {
+export default function CartPage({ cartItems, onUpdateQuantity, onRemove, onClear }) {
   const total = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0)
 
   return (
@@ -18,6 +18,7 @@ export default function CartPage({ cartItems, onUpdateQuantity, onRemove }) {
       ) : (
         <div className="cart-layout">
           <section className="cart-items">
+            <button className="remove-btn" onClick={onClear}>Vaciar carrito</button>
             {cartItems.map((item) => (
               <article className="cart-item" key={item.slug}>
                 <img src={item.image_url} alt={item.name} />
