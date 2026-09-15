@@ -190,6 +190,8 @@ button {
   background: rgba(255,255,255,0.8);
   border: 1px solid rgba(0,0,0,0.05);
   border-radius: 20px;
+  color: inherit;
+  display: block;
   padding: 20px;
   box-shadow: 0 12px 30px rgba(66, 49, 36, 0.05);
 }
@@ -293,13 +295,30 @@ button {
 
 .page-state,
 .cart-page,
-.product-detail {
+.product-detail,
+.category-page {
   margin: 0 auto;
   padding: 48px 0 80px;
 }
 
 .page-state {
   text-align: center;
+}
+
+.category-heading {
+  margin: 28px 0 36px;
+  max-width: 680px;
+}
+
+.category-heading h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  line-height: 1;
+  margin: 12px 0;
+}
+
+.category-heading p {
+  color: #666;
+  font-size: 1.1rem;
 }
 
 .product-detail-grid {

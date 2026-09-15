@@ -18,5 +18,6 @@ async function request(path) {
 }
 
 export const fetchCategories = () => request('/categories')
+export const fetchCategoryProducts = (slug) => request(`/categories/${slug}/products`)
 export const fetchProducts = () => request('/products')
 export const fetchProduct = (slug) => request(`/products/${slug}`)

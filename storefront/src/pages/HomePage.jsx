@@ -78,11 +78,11 @@ export default function HomePage({ onAddToCart }) {
             ) : (
               <div className="grid">
                 {categories.map((category) => (
-                  <article className="category-card" key={category.slug}>
+                  <Link className="category-card" key={category.slug} to={`/categories/${category.slug}`}>
                     <div className="badge">{category.products_count ?? 0} productos</div>
                     <strong>{category.name}</strong>
                     <p>{category.description}</p>
-                  </article>
+                  </Link>
                 ))}
               </div>
             )}
