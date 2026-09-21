@@ -5,7 +5,7 @@ export default function CartPage({ cartItems, onUpdateQuantity, onRemove, onClea
   const total = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0)
 
   return (
-    <main className="cart-page container">
+    <main className="cart-page container page-enter">
       <div className="section-title">
         <h1>Tu carrito</h1>
         <Link className="secondary-btn" to="/">Seguir comprando</Link>

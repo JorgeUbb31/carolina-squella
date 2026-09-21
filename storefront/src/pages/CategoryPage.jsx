@@ -40,7 +40,7 @@ export default function CategoryPage({ onAddToCart }) {
   }
 
   return (
-    <main className="category-page container">
+    <main className="category-page container page-enter">
       <Link className="back-link" to="/">Volver</Link>
       <header className="category-heading">
         <span className="eyebrow">Colección Carolina Squella</span>
@@ -54,8 +54,8 @@ export default function CategoryPage({ onAddToCart }) {
         </div>
       ) : (
         <div className="grid">
-          {products.map((product) => (
-            <article className="product-card" key={product.slug}>
+          {products.map((product, index) => (
+            <article className="product-card reveal-card" style={{ '--delay': `${index * 80}ms` }} key={product.slug}>
               <Link to={`/products/${product.slug}`}>
                 <img src={product.image_url} alt={product.name} />
               </Link>

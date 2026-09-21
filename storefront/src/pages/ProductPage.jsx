@@ -35,7 +35,7 @@ export default function ProductPage({ onAddToCart }) {
   }
 
   return (
-    <main className="product-detail container">
+    <main className="product-detail container page-enter">
       <Link className="back-link" to="/">Volver a la tienda</Link>
       <div className="product-detail-grid">
         <img src={product.image_url} alt={product.name} />

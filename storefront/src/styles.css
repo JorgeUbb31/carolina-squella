@@ -1,9 +1,17 @@
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #1d1d1f;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #252321;
   background: #f7f3ee;
   line-height: 1.5;
   font-weight: 400;
+  --ink: #252321;
+  --muted: #706b65;
+  --clay: #9b6245;
+  --clay-dark: #70432f;
+  --linen: #f8f1e8;
+  --paper: #fffdf9;
+  --line: rgba(66, 47, 35, 0.12);
+  --shadow: 0 18px 50px rgba(63, 42, 29, 0.1);
 }
 
 * {
@@ -18,7 +26,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f1ea 0%, #f4f5f7 100%);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(219, 178, 143, 0.2), transparent 28rem),
+    linear-gradient(180deg, #fbf5ee 0%, #f2f4f1 100%);
 }
 
 a {
@@ -35,13 +45,19 @@ button {
   font: inherit;
 }
 
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(155, 98, 69, 0.38);
+  outline-offset: 4px;
+}
+
 .container {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
 }
 
 .topbar {
-  background: #1d1d1f;
+  background: var(--ink);
   color: white;
   padding: 12px 0;
   font-size: 0.85rem;
@@ -74,6 +90,7 @@ button {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
 .nav {
@@ -99,16 +116,38 @@ button {
   padding: 12px 20px;
   font-weight: 700;
   cursor: pointer;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .primary-btn {
-  background: #8b5e3c;
+  background: var(--clay);
   color: white;
+  box-shadow: 0 8px 18px rgba(112, 67, 47, 0.18);
 }
 
 .secondary-btn {
-  background: #f2e7dc;
+  background: #efe1d4;
   color: #3d2a20;
+}
+
+.primary-btn:hover,
+.secondary-btn:hover {
+  transform: translateY(-2px);
+}
+
+.primary-btn:hover {
+  background: var(--clay-dark);
+  box-shadow: 0 12px 24px rgba(112, 67, 47, 0.25);
+}
+
+.secondary-btn:hover {
+  background: #e5d1bf;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
 }
 
 .hero {
@@ -155,6 +194,7 @@ button {
   box-shadow: 0 30px 80px rgba(38, 26, 18, 0.12);
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.04);
+  animation: float-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero-card img {
@@ -194,6 +234,13 @@ button {
   display: block;
   padding: 20px;
   box-shadow: 0 12px 30px rgba(66, 49, 36, 0.05);
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.category-card:hover {
+  border-color: rgba(155, 98, 69, 0.35);
+  box-shadow: var(--shadow);
+  transform: translateY(-5px);
 }
 
 .category-card strong {
@@ -208,12 +255,24 @@ button {
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.04);
   box-shadow: 0 12px 35px rgba(32, 25, 23, 0.06);
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.product-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-6px);
 }
 
 .product-card img {
   width: 100%;
   height: 260px;
   object-fit: cover;
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1), filter 300ms ease;
+}
+
+.product-card:hover img {
+  filter: saturate(1.08);
+  transform: scale(1.04);
 }
 
 .product-body {
@@ -245,8 +304,8 @@ button {
 }
 
 .badge {
-  background: #f2e7dc;
-  color: #8b5e3c;
+  background: #f2e4d7;
+  color: var(--clay-dark);
   border-radius: 999px;
   padding: 7px 10px;
   font-size: 0.72rem;
@@ -303,6 +362,30 @@ button {
 
 .page-state {
   text-align: center;
+}
+
+.page-enter {
+  animation: page-enter 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.reveal-card {
+  animation: card-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
+}
+
+.category-heading,
+.product-detail-grid,
+.cart-layout {
+  animation: float-in 650ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.back-link,
+.cart-link {
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.back-link:hover,
+.cart-link:hover {
+  color: var(--clay-dark);
 }
 
 .category-heading {
@@ -420,10 +503,54 @@ button {
 
 .cart-summary {
   align-self: start;
-  background: #fff;
+  background: rgba(255, 253, 249, 0.9);
   border: 1px solid #eee;
   border-radius: 16px;
   padding: 24px;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .cart-summary > div {
