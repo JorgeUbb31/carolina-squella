@@ -16,6 +16,7 @@ jobs:
 
     env:
       APP_NAME: api-backend
+      APP_PORT: "8000"
       NODE_ENV: production
 
     steps:
@@ -29,6 +30,7 @@ jobs:
         timeout-minutes: 1
         run: |
           set -e
+
           command -v php
           command -v composer
           command -v pm2
@@ -38,6 +40,18 @@ jobs:
           pm2 --version
 
           php -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);'
+
+      - name: Verificar extensiones PHP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          for extension in bcmath ctype curl dom fileinfo mbstring openssl pdo tokenizer xml pdo_pgsql pgsql; do
+            php -m | grep -i "^${extension}$" >/dev/null || {
+              echo "Falta la extensión PHP: ${extension}"
+              exit 1
+            }
+          done
 
       - name: Instalar dependencias PHP
         working-directory: backend
@@ -54,7 +68,7 @@ jobs:
             --optimize-autoloader \
             --no-dev
 
-      - name: Crear configuración del backend
+      - name: Crear configuración PostgreSQL
         timeout-minutes: 1
         run: |
           set -e
@@ -74,11 +88,44 @@ jobs:
           cp "$ENV_FILE" backend/.env
           chmod 600 backend/.env
 
-      
+          grep -q '^DB_CONNECTION=pgsql$' backend/.env || {
+            echo "DB_CONNECTION debe ser pgsql"
+            exit 1
+          }
+
+          grep -q '^DB_HOST=' backend/.env || {
+            echo "Falta DB_HOST"
+            exit 1
+          }
+
+          grep -q '^DB_DATABASE=' backend/.env || {
+            echo "Falta DB_DATABASE"
+            exit 1
+          }
+
+          grep -q '^DB_USERNAME=' backend/.env || {
+            echo "Falta DB_USERNAME"
+            exit 1
+          }
+
+      - name: Preparar directorios Laravel
+        working-directory: backend
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          mkdir -p resources/views
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+
+          chmod -R ug+rwX storage bootstrap/cache
 
       - name: Preparar Laravel
         working-directory: backend
-        timeout-minutes: 2
+        timeout-minutes: 3
         run: |
           set -e
 
@@ -86,11 +133,15 @@ jobs:
           php artisan config:cache
           php artisan route:cache
 
+          if [ -d resources/views ] && find resources/views -type f -not -name '.gitkeep' -print -quit | grep -q .; then
+            php artisan view:cache
+          else
+            echo "No hay vistas Blade; se omite view:cache"
+          fi
+
       - name: Reiniciar backend Laravel con PM2
         working-directory: backend
         timeout-minutes: 2
-        env:
-          APP_PORT: "8000"
         run: |
           set -e
 
@@ -105,21 +156,43 @@ jobs:
             --name "$APP_NAME" \
             --interpreter php \
             -- serve \
-            --host 0.0.0.0 \
+            --host 127.0.0.1 \
             --port "$APP_PORT"
 
           pm2 save
           pm2 status "$APP_NAME"
 
-      - name: Verificar backend
+      - name: Verificar backend por HTTP
         timeout-minutes: 1
         run: |
           set -e
 
-          sleep 2
+          URL="http://127.0.0.1:${APP_PORT}/"
+          MAX_ATTEMPTS=10
+          HTTP_CODE="000"
 
-          curl --fail --silent --show-error \
-            --max-time 10 \
-            http://127.0.0.1:8000/ >/dev/null
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 5 \
+              "$URL" || true)"
 
-          echo "Backend Laravel funcionando correctamente"
+            echo "Intento ${attempt}/${MAX_ATTEMPTS}: HTTP ${HTTP_CODE}"
+
+            case "$HTTP_CODE" in
+              2??|3??|401|403|404)
+                echo "Backend Laravel está respondiendo correctamente"
+                exit 0
+                ;;
+            esac
+
+            sleep 1
+          done
+
+          echo "El backend no respondió correctamente después de ${MAX_ATTEMPTS} intentos"
+          pm2 status "$APP_NAME" || true
+          pm2 logs "$APP_NAME" --lines 50 --nostream || true
+          exit 1
