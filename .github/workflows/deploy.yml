@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: self-hosted
@@ -13,18 +17,72 @@ jobs:
       - name: Descargar el código
         uses: actions/checkout@v4
 
-      - name: Instalar dependencias del Backend
+      - name: Preparar PHP y Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+          coverage: none
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Verificar herramientas
         run: |
-          source ~/.nvm/nvm.sh
-          cd backend
-          composer install
+          php --version
+          composer --version
+          node --version
+          npm --version
+
+      - name: Instalar dependencias del Backend
+        working-directory: backend
+        run: |
+          composer validate --no-check-publish
+          composer install \
+            --no-interaction \
+            --no-progress \
+            --prefer-dist \
+            --optimize-autoloader
+
+      - name: Instalar dependencias Node.js
+        working-directory: backend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --omit=dev
+          elif [ -f package.json ]; then
+            npm install --omit=dev
+          fi
 
       - name: Inyectar variables de entorno Backend
-        run: cp ~/backend.env ./backend/src/config/.env
+        run: |
+          test -f "$HOME/backend.env" || {
+            echo "No existe $HOME/backend.env en el runner"
+            exit 1
+          }
+
+          mkdir -p "$GITHUB_WORKSPACE/backend/src/config"
+          cp "$HOME/backend.env" \
+             "$GITHUB_WORKSPACE/backend/src/config/.env"
+
+      - name: Instalar PM2
+        run: |
+          npm install --global pm2
+          pm2 --version
 
       - name: Reiniciar Backend con PM2
+        working-directory: backend
+        env:
+          PM2_APP_NAME: api-backend
         run: |
-          source ~/.nvm/nvm.sh
-          cd backend
-          setsid pm2 restart api-backend || setsid pm2 start $GITHUB_WORKSPACE/backend/src/index.js --name "api-backend"
+          if pm2 describe "$PM2_APP_NAME" > /dev/null 2>&1; then
+            pm2 restart "$PM2_APP_NAME" --update-env
+          else
+            pm2 start src/index.js --name "$PM2_APP_NAME"
+          fi
+
           pm2 save
+          pm2 status
