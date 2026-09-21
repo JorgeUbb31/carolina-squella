@@ -19,24 +19,37 @@ jobs:
       NODE_ENV: production
 
     steps:
-      - name: Checkout rápido
+      - name: Descargar el código
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           clean: false
 
-      - name: Verificar herramientas preinstaladas
+      - name: Preparar PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: dom, curl, fileinfo, mbstring, openssl, pdo, tokenizer, xml, ctype, bcmath
+          tools: composer
+          coverage: none
+
+      - name: Verificar PHP
         timeout-minutes: 1
         run: |
           set -e
-          command -v php
-          command -v composer
+          php -v
+          composer --version
+
+          php -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);'
+
+      - name: Verificar Node y PM2
+        timeout-minutes: 1
+        run: |
+          set -e
           command -v node
           command -v npm
           command -v pm2
 
-          php --version
-          composer --version
           node --version
           npm --version
           pm2 --version
@@ -53,60 +66,3 @@ jobs:
             --prefer-dist \
             --optimize-autoloader \
             --no-dev
-
-      - name: Instalar dependencias Node
-        working-directory: backend
-        timeout-minutes: 5
-        run: |
-          set -e
-
-          if [ ! -f package-lock.json ]; then
-            echo "Falta backend/package-lock.json"
-            exit 1
-          fi
-
-          npm ci \
-            --omit=dev \
-            --no-audit \
-            --no-fund \
-            --prefer-offline
-
-      - name: Crear configuración del backend
-        timeout-minutes: 1
-        env:
-          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
-        run: |
-          set -e
-
-          test -n "$BACKEND_ENV" || {
-            echo "El secret BACKEND_ENV está vacío o no existe"
-            exit 1
-          }
-
-          mkdir -p backend/src/config
-          printf '%s' "$BACKEND_ENV" > backend/src/config/.env
-          chmod 600 backend/src/config/.env
-
-      - name: Reiniciar backend
-        working-directory: backend
-        timeout-minutes: 2
-        run: |
-          set -e
-
-          if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-            pm2 restart "$APP_NAME" --update-env
-          else
-            pm2 start src/index.js \
-              --name "$APP_NAME" \
-              --watch false \
-              --time
-          fi
-
-          pm2 save
-
-      - name: Verificar backend
-        timeout-minutes: 1
-        run: |
-          set -e
-          pm2 status "$APP_NAME"
-          pm2 show "$APP_NAME" | grep -E "status|uptime|script path" || true
