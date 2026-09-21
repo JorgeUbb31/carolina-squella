@@ -73,19 +73,26 @@ jobs:
 
       - name: Crear configuración del backend
         timeout-minutes: 1
-        env:
-          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
         run: |
           set -e
 
-          test -n "$BACKEND_ENV" || {
-            echo "El secret BACKEND_ENV está vacío o no existe"
+          ENV_FILE="$HOME/backend.env"
+
+          test -f "$ENV_FILE" || {
+            echo "No existe el archivo ENV"
+            exit 1
+          }
+
+          test -r "$ENV_FILE" || {
+            echo "El runner no puede leer $ENV_FILE"
             exit 1
           }
 
           mkdir -p backend/src/config
-          printf '%s' "$BACKEND_ENV" > backend/src/config/.env
+          printf '%s' "$ENV_FILE" > backend/src/config/.env
           chmod 600 backend/src/config/.env
+
+          echo "Configuración backend creada"
 
       - name: Reiniciar backend con PM2
         working-directory: backend
