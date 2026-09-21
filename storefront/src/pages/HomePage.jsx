@@ -37,7 +37,7 @@ export default function HomePage({ onAddToCart }) {
       </div>
 
       <main>
-        <section className="hero">
+        <section className="hero page-enter">
           <div className="container">
             <div>
               <div className="eyebrow">Cortinas y telas premium</div>
@@ -78,11 +78,11 @@ export default function HomePage({ onAddToCart }) {
             ) : (
               <div className="grid">
                 {categories.map((category) => (
-                  <article className="category-card" key={category.slug}>
+                  <Link className="category-card" key={category.slug} to={`/categories/${category.slug}`}>
                     <div className="badge">{category.products_count ?? 0} productos</div>
                     <strong>{category.name}</strong>
                     <p>{category.description}</p>
-                  </article>
+                  </Link>
                 ))}
               </div>
             )}
@@ -108,8 +108,8 @@ export default function HomePage({ onAddToCart }) {
               <p>No hay productos disponibles.</p>
             ) : (
               <div className="grid">
-                {products.map((product) => (
-                  <article className="product-card" key={product.slug || product.name}>
+                  {products.map((product, index) => (
+                    <article className="product-card reveal-card" style={{ '--delay': `${index * 80}ms` }} key={product.slug || product.name}>
                     <Link to={`/products/${product.slug}`}>
                       <img src={product.image_url} alt={product.name} />
                     </Link>

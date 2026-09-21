@@ -18,4 +18,18 @@ class CategoryController extends Controller
                 ->get()
         );
     }
+
+    public function products(Category $category): JsonResponse
+    {
+        abort_unless($category->is_active, 404);
+
+        return response()->json([
+            'category' => $category,
+            'products' => $category->products()
+                ->where('is_active', true)
+                ->with('category:id,name,slug')
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
 }

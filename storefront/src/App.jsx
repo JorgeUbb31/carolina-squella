@@ -3,6 +3,7 @@ import { Link, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
+import CategoryPage from './pages/CategoryPage'
 import {
   addItem,
   clearCart,
@@ -44,6 +45,7 @@ export default function App() {
       </header>
       <Routes>
         <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
+        <Route path="/categories/:slug" element={<CategoryPage onAddToCart={addToCart} />} />
         <Route path="/products/:slug" element={<ProductPage onAddToCart={addToCart} />} />
         <Route path="/cart" element={<CartPage cartItems={cartItems} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onClear={emptyCart} />} />
       </Routes>
