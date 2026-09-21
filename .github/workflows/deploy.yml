@@ -19,6 +19,7 @@ jobs:
       STOREFRONT_NAME: carolina-storefront
       APP_PORT: "8000"
       STOREFRONT_PORT: "5173"
+      PUBLIC_API_URL: "http://146.83.198.35:1629/api/v1"
       NODE_ENV: production
 
     steps:
@@ -38,6 +39,7 @@ jobs:
           command -v node
           command -v npm
           command -v pm2
+          command -v curl
 
           php -v
           composer --version
@@ -52,7 +54,20 @@ jobs:
         run: |
           set -e
 
-          for extension in bcmath ctype curl dom fileinfo mbstring openssl pdo tokenizer xml pdo_pgsql pgsql; do
+          for extension in \
+            bcmath \
+            ctype \
+            curl \
+            dom \
+            fileinfo \
+            mbstring \
+            openssl \
+            pdo \
+            pdo_pgsql \
+            pgsql \
+            tokenizer \
+            xml
+          do
             php -m | grep -i "^${extension}$" >/dev/null || {
               echo "Falta la extensión PHP: ${extension}"
               exit 1
@@ -99,6 +114,28 @@ jobs:
             exit 1
           }
 
+          grep -q '^DB_HOST=' backend/.env || {
+            echo "Falta DB_HOST"
+            exit 1
+          }
+
+          grep -q '^DB_PORT=' backend/.env || {
+            echo "Falta DB_PORT"
+            exit 1
+          }
+
+          grep -q '^DB_DATABASE=' backend/.env || {
+            echo "Falta DB_DATABASE"
+            exit 1
+          }
+
+          grep -q '^DB_USERNAME=' backend/.env || {
+            echo "Falta DB_USERNAME"
+            exit 1
+          }
+
+          echo "Configuración PostgreSQL validada"
+
       - name: Preparar directorios Laravel
         working-directory: backend
         timeout-minutes: 1
@@ -124,7 +161,12 @@ jobs:
           php artisan config:cache
           php artisan route:cache
 
-          if find resources/views -type f -not -name '.gitkeep' -print -quit | grep -q .; then
+          if find resources/views \
+            -type f \
+            -not -name '.gitkeep' \
+            -print \
+            -quit | grep -q .
+          then
             php artisan view:cache
           else
             echo "No hay vistas Blade; se omite view:cache"
@@ -159,19 +201,26 @@ jobs:
         run: |
           set -e
 
-          npm ci \
+          npm install \
             --include=dev \
             --no-audit \
             --no-fund \
             --prefer-offline
 
+          test -x node_modules/.bin/vite || {
+            echo "Vite no fue instalado correctamente"
+            exit 1
+          }
+
       - name: Construir storefront
         working-directory: storefront
         timeout-minutes: 5
         env:
-          VITE_API_URL: /api/v1
+          VITE_API_URL: "http://146.83.198.35:1629/api/v1"
         run: |
           set -e
+
+          echo "API pública: $VITE_API_URL"
 
           npm run build
 
@@ -223,12 +272,13 @@ jobs:
 
             case "$HTTP_CODE" in
               2??|3??|401|403|404)
-                echo "Backend Laravel está respondiendo"
+                echo "Backend Laravel está respondiendo correctamente"
                 break
                 ;;
             esac
 
             if [ "$attempt" -eq 10 ]; then
+              pm2 status "$APP_NAME" || true
               pm2 logs "$APP_NAME" --lines 50 --nostream || true
               exit 1
             fi
@@ -246,13 +296,13 @@ jobs:
             --silent \
             --show-error \
             --max-time 10 \
-            http://127.0.0.1:${STOREFRONT_PORT}/ \
+            "http://127.0.0.1:${STOREFRONT_PORT}/" \
             -o /tmp/storefront.html
 
           grep -q '<div id="root"></div>' /tmp/storefront.html || {
-            echo "El storefront no devolvió el index correcto"
+            echo "El storefront no devolvió el index esperado"
             cat /tmp/storefront.html
             exit 1
           }
 
-          echo "Storefront funcionando en el puerto ${STOREFRONT_PORT}"
+          echo "Storefront funcionando correctamente"
