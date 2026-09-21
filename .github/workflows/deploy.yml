@@ -71,23 +71,6 @@ jobs:
             --optimize-autoloader \
             --no-dev
 
-      - name: Instalar dependencias Node
-        working-directory: backend
-        timeout-minutes: 5
-        run: |
-          set -e
-
-          if [ ! -f package-lock.json ]; then
-            echo "Falta backend/package-lock.json"
-            exit 1
-          fi
-
-          npm ci \
-            --omit=dev \
-            --no-audit \
-            --no-fund \
-            --prefer-offline
-
       - name: Crear configuración del backend
         timeout-minutes: 1
         env:
