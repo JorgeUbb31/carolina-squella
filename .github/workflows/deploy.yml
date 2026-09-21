@@ -159,7 +159,8 @@ jobs:
         run: |
           set -e
 
-          npm install \
+          npm ci \
+            --include=dev \
             --no-audit \
             --no-fund \
             --prefer-offline
