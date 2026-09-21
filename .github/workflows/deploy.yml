@@ -74,6 +74,8 @@ jobs:
           cp "$ENV_FILE" backend/.env
           chmod 600 backend/.env
 
+      
+
       - name: Preparar Laravel
         working-directory: backend
         timeout-minutes: 2
@@ -83,7 +85,6 @@ jobs:
           php artisan optimize:clear
           php artisan config:cache
           php artisan route:cache
-          php artisan view:cache
 
       - name: Reiniciar backend Laravel con PM2
         working-directory: backend
