@@ -12,11 +12,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     env:
       APP_NAME: api-backend
+      STOREFRONT_NAME: carolina-storefront
       APP_PORT: "8000"
+      STOREFRONT_PORT: "5173"
       NODE_ENV: production
 
     steps:
@@ -33,10 +35,14 @@ jobs:
 
           command -v php
           command -v composer
+          command -v node
+          command -v npm
           command -v pm2
 
           php -v
           composer --version
+          node --version
+          npm --version
           pm2 --version
 
           php -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);'
@@ -93,21 +99,6 @@ jobs:
             exit 1
           }
 
-          grep -q '^DB_HOST=' backend/.env || {
-            echo "Falta DB_HOST"
-            exit 1
-          }
-
-          grep -q '^DB_DATABASE=' backend/.env || {
-            echo "Falta DB_DATABASE"
-            exit 1
-          }
-
-          grep -q '^DB_USERNAME=' backend/.env || {
-            echo "Falta DB_USERNAME"
-            exit 1
-          }
-
       - name: Preparar directorios Laravel
         working-directory: backend
         timeout-minutes: 1
@@ -133,7 +124,7 @@ jobs:
           php artisan config:cache
           php artisan route:cache
 
-          if [ -d resources/views ] && find resources/views -type f -not -name '.gitkeep' -print -quit | grep -q .; then
+          if find resources/views -type f -not -name '.gitkeep' -print -quit | grep -q .; then
             php artisan view:cache
           else
             echo "No hay vistas Blade; se omite view:cache"
@@ -156,11 +147,59 @@ jobs:
             --name "$APP_NAME" \
             --interpreter php \
             -- serve \
-            --host 127.0.0.1 \
+            --host 0.0.0.0 \
             --port "$APP_PORT"
 
           pm2 save
           pm2 status "$APP_NAME"
+
+      - name: Instalar dependencias del storefront
+        working-directory: storefront
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          npm install \
+            --no-audit \
+            --no-fund \
+            --prefer-offline
+
+      - name: Construir storefront
+        working-directory: storefront
+        timeout-minutes: 5
+        env:
+          VITE_API_URL: /api/v1
+        run: |
+          set -e
+
+          npm run build
+
+          test -f dist/index.html || {
+            echo "No se generó storefront/dist/index.html"
+            exit 1
+          }
+
+          echo "Storefront compilado correctamente"
+
+      - name: Servir storefront con PM2
+        working-directory: storefront
+        timeout-minutes: 2
+        run: |
+          set -e
+
+          test -f dist/index.html || {
+            echo "No existe storefront/dist/index.html"
+            exit 1
+          }
+
+          pm2 delete "$STOREFRONT_NAME" >/dev/null 2>&1 || true
+
+          pm2 serve dist "$STOREFRONT_PORT" \
+            --name "$STOREFRONT_NAME" \
+            --spa
+
+          pm2 save
+          pm2 status "$STOREFRONT_NAME"
 
       - name: Verificar backend por HTTP
         timeout-minutes: 1
@@ -168,10 +207,9 @@ jobs:
           set -e
 
           URL="http://127.0.0.1:${APP_PORT}/"
-          MAX_ATTEMPTS=10
           HTTP_CODE="000"
 
-          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+          for attempt in $(seq 1 10); do
             HTTP_CODE="$(curl \
               --silent \
               --show-error \
@@ -180,19 +218,40 @@ jobs:
               --max-time 5 \
               "$URL" || true)"
 
-            echo "Intento ${attempt}/${MAX_ATTEMPTS}: HTTP ${HTTP_CODE}"
+            echo "Backend - intento ${attempt}/10: HTTP ${HTTP_CODE}"
 
             case "$HTTP_CODE" in
               2??|3??|401|403|404)
-                echo "Backend Laravel está respondiendo correctamente"
-                exit 0
+                echo "Backend Laravel está respondiendo"
+                break
                 ;;
             esac
+
+            if [ "$attempt" -eq 10 ]; then
+              pm2 logs "$APP_NAME" --lines 50 --nostream || true
+              exit 1
+            fi
 
             sleep 1
           done
 
-          echo "El backend no respondió correctamente después de ${MAX_ATTEMPTS} intentos"
-          pm2 status "$APP_NAME" || true
-          pm2 logs "$APP_NAME" --lines 50 --nostream || true
-          exit 1
+      - name: Verificar storefront por HTTP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --max-time 10 \
+            http://127.0.0.1:${STOREFRONT_PORT}/ \
+            -o /tmp/storefront.html
+
+          grep -q '<div id="root"></div>' /tmp/storefront.html || {
+            echo "El storefront no devolvió el index correcto"
+            cat /tmp/storefront.html
+            exit 1
+          }
+
+          echo "Storefront funcionando en el puerto ${STOREFRONT_PORT}"
