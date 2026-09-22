@@ -18,7 +18,7 @@ export default function CartPage({ cartItems, onUpdateQuantity, onRemove, onClea
       ) : (
         <div className="cart-layout">
           <section className="cart-items">
-            <button className="remove-btn" onClick={onClear}>Vaciar carrito</button>
+            <button className="primary-btn" onClick={onClear}>Vaciar carrito</button>
             {cartItems.map((item) => (
               <article className="cart-item" key={item.slug}>
                 <img src={item.image_url} alt={item.name} />
