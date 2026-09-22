@@ -185,6 +185,14 @@ jobs:
 
           chmod -R ug+rwX storage bootstrap/cache
 
+      - name: Ejecutar migraciones Laravel
+        working-directory: backend
+        timeout-minutes: 3
+        run: |
+          set -e
+
+          php artisan migrate --force
+
       - name: Preparar Laravel
         working-directory: backend
         timeout-minutes: 3
