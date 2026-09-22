@@ -8,35 +8,47 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->string('material')->nullable()->after('stock');
-            $table->string('color')->nullable()->after('material');
-            $table->string('pattern')->nullable()->after('color');
-            $table->unsignedInteger('width_cm')->nullable()->after('pattern');
-            $table->unsignedInteger('height_cm')->nullable()->after('width_cm');
-            $table->boolean('is_blackout')->default(false)->after('height_cm');
-            $table->boolean('is_thermal')->default(false)->after('is_blackout');
-            $table->boolean('is_waterproof')->default(false)->after('is_thermal');
-            $table->boolean('sample_available')->default(false)->after('is_waterproof');
-            $table->string('unit_type')->default('pieza')->after('sample_available');
-        });
+        $columns = [
+            'material' => fn (Blueprint $table) => $table->string('material')->nullable(),
+            'color' => fn (Blueprint $table) => $table->string('color')->nullable(),
+            'pattern' => fn (Blueprint $table) => $table->string('pattern')->nullable(),
+            'width_cm' => fn (Blueprint $table) => $table->unsignedInteger('width_cm')->nullable(),
+            'height_cm' => fn (Blueprint $table) => $table->unsignedInteger('height_cm')->nullable(),
+            'is_blackout' => fn (Blueprint $table) => $table->boolean('is_blackout')->default(false),
+            'is_thermal' => fn (Blueprint $table) => $table->boolean('is_thermal')->default(false),
+            'is_waterproof' => fn (Blueprint $table) => $table->boolean('is_waterproof')->default(false),
+            'sample_available' => fn (Blueprint $table) => $table->boolean('sample_available')->default(false),
+            'unit_type' => fn (Blueprint $table) => $table->string('unit_type')->default('pieza'),
+        ];
+
+        foreach ($columns as $column => $definition) {
+            if (! Schema::hasColumn('products', $column)) {
+                Schema::table('products', $definition);
+            }
+        }
     }
 
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn([
-                'material',
-                'color',
-                'pattern',
-                'width_cm',
-                'height_cm',
-                'is_blackout',
-                'is_thermal',
-                'is_waterproof',
-                'sample_available',
-                'unit_type',
-            ]);
-        });
+        $columns = [
+            'material',
+            'color',
+            'pattern',
+            'width_cm',
+            'height_cm',
+            'is_blackout',
+            'is_thermal',
+            'is_waterproof',
+            'sample_available',
+            'unit_type',
+        ];
+
+        foreach ($columns as $column) {
+            if (Schema::hasColumn('products', $column)) {
+                Schema::table('products', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 };
