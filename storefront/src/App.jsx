@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ProductPage from './pages/ProductPage'
@@ -8,17 +8,43 @@ import {
   addItem,
   clearCart,
   getCartItemCount,
+  getCartToken,
   readCart,
   removeItem,
   saveCart,
   updateItemQuantity
 } from './services/cart.service'
+import { clearRemoteCart, fetchCart, saveRemoteCart } from './services/api'
 
 export default function App() {
   const [cartItems, setCartItems] = useState(readCart)
+  const [cartError, setCartError] = useState('')
+  const cartToken = getCartToken()
+
+  useEffect(() => {
+    fetchCart(cartToken)
+      .then(async ({ items }) => {
+        if (items?.length) {
+          setCartItems(saveCart(items))
+          return
+        }
+
+        const legacyItems = readCart()
+        if (legacyItems.length) {
+          const savedCart = await saveRemoteCart(cartToken, legacyItems)
+          setCartItems(saveCart(savedCart.items ?? legacyItems))
+          return
+        }
+
+        setCartItems(saveCart([]))
+      })
+      .catch((error) => setCartError(error.message))
+  }, [cartToken])
 
   const persistCart = (items) => {
     setCartItems(saveCart(items))
+    setCartError('')
+    saveRemoteCart(cartToken, items).catch((error) => setCartError(error.message))
   }
 
   const addToCart = (product) => {
@@ -35,6 +61,8 @@ export default function App() {
 
   const emptyCart = () => {
     setCartItems(clearCart())
+    setCartError('')
+    clearRemoteCart(cartToken).catch((error) => setCartError(error.message))
   }
 
   return (
@@ -47,7 +75,7 @@ export default function App() {
         <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
         <Route path="/categories/:slug" element={<CategoryPage onAddToCart={addToCart} />} />
         <Route path="/products/:slug" element={<ProductPage onAddToCart={addToCart} />} />
-        <Route path="/cart" element={<CartPage cartItems={cartItems} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onClear={emptyCart} />} />
+        <Route path="/cart" element={<CartPage cartItems={cartItems} cartToken={cartToken} cartError={cartError} onCheckoutComplete={emptyCart} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onClear={emptyCart} />} />
       </Routes>
     </>
   )
