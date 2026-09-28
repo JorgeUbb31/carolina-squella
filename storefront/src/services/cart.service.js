@@ -1,4 +1,14 @@
 const CART_STORAGE_KEY = 'carolina-squella-cart'
+const CART_TOKEN_KEY = 'carolina-squella-cart-token'
+
+export function getCartToken() {
+  let token = localStorage.getItem(CART_TOKEN_KEY)
+  if (!token) {
+    token = crypto.randomUUID()
+    localStorage.setItem(CART_TOKEN_KEY, token)
+  }
+  return token
+}
 
 function isCartItem(item) {
   return item && typeof item.slug === 'string' && item.slug.length > 0 && Number(item.quantity) > 0
