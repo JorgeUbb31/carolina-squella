@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../services/home.service'
 import { submitOrder } from '../services/api'
+import ShippingNotice from '../components/ShippingNotice'
 
 const initialForm = {
   customer_name: '',
@@ -18,10 +19,17 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
   const [submitting, setSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
   const [completedOrder, setCompletedOrder] = useState(null)
+  const [showShippingNotice, setShowShippingNotice] = useState(false)
   const total = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0)
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault()
+    setCheckoutError('')
+    setShowShippingNotice(true)
+  }
+
+  const confirmOrder = async () => {
+    setShowShippingNotice(false)
     setSubmitting(true)
     setCheckoutError('')
 
@@ -98,6 +106,13 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
             </form>
           </aside>
         </div>
+      )}
+      {showShippingNotice && (
+        <ShippingNotice
+          submitting={submitting}
+          onCancel={() => setShowShippingNotice(false)}
+          onConfirm={confirmOrder}
+        />
       )}
     </main>
   )
