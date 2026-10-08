@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,15 @@ class OrderController extends Controller
                     'quantity' => $item->quantity,
                     'line_total' => $lineTotal,
                 ]);
+                $stockBefore = $product->stock;
                 $product->decrement('stock', $item->quantity);
+                StockMovement::query()->create([
+                    'product_id' => $product->id,
+                    'quantity_change' => -$item->quantity,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockBefore - $item->quantity,
+                    'reason' => "Venta {$order->order_number}",
+                ]);
             }
 
             $cart->items()->delete();

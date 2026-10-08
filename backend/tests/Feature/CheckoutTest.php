@@ -52,6 +52,12 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseHas('orders', ['customer_email' => 'cliente@example.com', 'total' => 24000]);
         $this->assertDatabaseHas('order_items', ['product_id' => $product->id, 'quantity' => 2]);
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 3]);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'quantity_change' => -2,
+            'stock_before' => 5,
+            'stock_after' => 3,
+        ]);
         $this->assertDatabaseCount('cart_items', 0);
     }
 
