@@ -9,9 +9,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::query()->firstOrCreate(
+        User::query()->updateOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => bcrypt('password')]
+            [
+                'name' => 'Test User',
+                'password' => 'password',
+                'is_admin' => true,
+            ]
         );
 
         $this->call([
