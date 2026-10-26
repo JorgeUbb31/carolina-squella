@@ -1,15 +1,14 @@
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
-const TOKEN_KEY = 'carolina-admin-token'
+import { API_TOKEN_KEY, API_URL } from '../config/api'
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return localStorage.getItem(API_TOKEN_KEY)
 }
 
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(API_TOKEN_KEY)
 }
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const token = getToken()
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -40,7 +39,7 @@ export async function login(email, password) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
-  localStorage.setItem(TOKEN_KEY, payload.token)
+  localStorage.setItem(API_TOKEN_KEY, payload.token)
   return payload.user
 }
 
@@ -50,24 +49,4 @@ export function logout() {
 
 export function getCurrentUser() {
   return request('/auth/me')
-}
-
-export function getCategories() {
-  return request('/categories')
-}
-
-export function getProducts(params = {}) {
-  const query = new URLSearchParams(params)
-  return request(`/admin/products?${query.toString()}`)
-}
-
-export function saveProduct(product, id) {
-  return request(id ? `/admin/products/${id}` : '/admin/products', {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify(product),
-  })
-}
-
-export function deleteProduct(id) {
-  return request(`/admin/products/${id}`, { method: 'DELETE' })
 }

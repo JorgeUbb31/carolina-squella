@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminProductController;
+use App\Http\Controllers\Api\AdminCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -30,6 +31,12 @@ Route::prefix('v1')->group(function () {
             Route::put('products/{product}', [AdminProductController::class, 'update'])->name('admin.products.update');
             Route::patch('products/{product}', [AdminProductController::class, 'update']);
             Route::delete('products/{product}', [AdminProductController::class, 'destroy'])->name('admin.products.destroy');
+
+            Route::get('categories', [AdminCategoryController::class, 'index'])->name('admin.categories.index');
+            Route::post('categories', [AdminCategoryController::class, 'store'])->name('admin.categories.store');
+            Route::put('categories/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
+            Route::patch('categories/{category}', [AdminCategoryController::class, 'update']);
+            Route::delete('categories/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
         });
     });
 });
