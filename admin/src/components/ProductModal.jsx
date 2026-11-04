@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { AlertCircle, Check, ChevronDown, LoaderCircle } from 'lucide-react'
-import { FABRIC_WIDTHS } from '../config/inventory'
+import { FABRIC_WIDTHS, formatFabricWidth, isSoldByMeterCategory } from '../config/inventory'
 import createSlug from '../utils/createSlug'
 import Modal from './Modal'
 
 const emptyProduct = {
   category_id: '',
   name: '',
-  slug: '',
   description: '',
   price: '',
   stock: '0',
@@ -20,7 +19,7 @@ const emptyProduct = {
   is_thermal: false,
   is_waterproof: false,
   sample_available: false,
-  unit_type: 'unidad',
+  unit_type: 'pieza',
   image_url: '',
   is_active: true,
 }
@@ -37,7 +36,10 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
   const [busy, setBusy] = useState(false)
   const editing = Boolean(product?.id)
   const selectedCategory = categories.find((category) => String(category.id) === String(form.category_id))
-  const isRoller = selectedCategory?.slug === 'cortinas-roller'
+  const soldByMeter = isSoldByMeterCategory(selectedCategory)
+  const fabricWidths = form.width_cm && !FABRIC_WIDTHS.includes(Number(form.width_cm))
+    ? [...FABRIC_WIDTHS, Number(form.width_cm)].sort((left, right) => left - right)
+    : FABRIC_WIDTHS
 
   function change(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -49,12 +51,19 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
     setError('')
     const payload = {
       ...form,
+      slug: createSlug(form.name),
       category_id: form.category_id ? Number(form.category_id) : null,
       price: Number(form.price),
       stock: Number(form.stock),
-      width_cm: isRoller ? null : form.width_cm ? Number(form.width_cm) : null,
-      height_cm: null,
-      unit_type: isRoller ? 'unidad' : form.unit_type || 'metro',
+      width_cm: soldByMeter
+        ? form.width_cm ? Number(form.width_cm) : null
+        : product?.width_cm ?? null,
+      height_cm: soldByMeter ? null : product?.height_cm ?? null,
+      unit_type: soldByMeter
+        ? 'metro'
+        : String(product?.category_id) === String(form.category_id)
+          ? product?.unit_type || 'pieza'
+          : 'pieza',
     }
     try {
       await onSave(payload, product?.id)
@@ -74,26 +83,28 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
     >
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
-            <label className="field field-wide">Nombre<input value={form.name} onChange={(event) => {
-              const name = event.target.value
-              setForm((current) => ({ ...current, name, slug: createSlug(name) }))
-            }} required maxLength="255" /></label>
-            <label className="field">Slug<input value={form.slug} onChange={(event) => change('slug', event.target.value)} required maxLength="255" /></label>
+            <label className="field field-wide">Nombre<input value={form.name} onChange={(event) => change('name', event.target.value)} required maxLength="255" /></label>
             <label className="field">Tipo de producto
-              <span className="select-wrap"><select value={form.category_id} onChange={(event) => change('category_id', event.target.value)}>
+              <span className="select-wrap"><select value={form.category_id} onChange={(event) => {
+                const categoryId = event.target.value
+                const category = categories.find((item) => String(item.id) === categoryId)
+                setForm((current) => ({
+                  ...current,
+                  category_id: categoryId,
+                  width_cm: isSoldByMeterCategory(category) && !soldByMeter ? '' : current.width_cm,
+                }))
+              }}>
                 <option value="">Selecciona un tipo</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select><ChevronDown size={16} /></span>
             </label>
-            <label className="field">Precio (CLP)<input type="number" min="0" step="1" value={form.price} onChange={(event) => change('price', event.target.value)} required /></label>
-            <label className="field">Stock disponible<input type="number" min="0" step="1" value={form.stock} onChange={(event) => change('stock', event.target.value)} required /></label>
+            <label className="field">{soldByMeter ? 'Precio por metro (CLP)' : 'Precio (CLP)'}<input type="number" min="0" step="1" value={form.price} onChange={(event) => change('price', event.target.value)} required /></label>
+            <label className="field">{soldByMeter ? 'Stock disponible (metros)' : 'Stock disponible'}<input type="number" min="0" step="1" value={form.stock} onChange={(event) => change('stock', event.target.value)} required /></label>
             <label className="field">Color<input value={form.color || ''} onChange={(event) => change('color', event.target.value)} /></label>
             <label className="field">Diseño / patrón<input value={form.pattern || ''} onChange={(event) => change('pattern', event.target.value)} /></label>
-            {isRoller ? (
-              <div className="roller-note field field-wide"><Check size={16} /><span>Las cortinas roller usan sus medidas propias y no requieren ancho ni alto en el inventario.</span></div>
-            ) : (
-              <label className="field">Ancho de la tela
-                <span className="select-wrap"><select value={form.width_cm ? String(form.width_cm) : ''} onChange={(event) => change('width_cm', event.target.value)}>
-                  <option value="">Selecciona ancho</option>{FABRIC_WIDTHS.map((width) => <option key={width} value={width}>{(width / 100).toFixed(2).replace('.00', '')} m ({width} cm)</option>)}
+            {soldByMeter && (
+              <label className="field">Ancho del rollo
+                <span className="select-wrap"><select value={form.width_cm ? String(form.width_cm) : ''} onChange={(event) => change('width_cm', event.target.value)} required>
+                  <option value="">Selecciona ancho</option>{fabricWidths.map((width) => <option key={width} value={width}>{formatFabricWidth(width)} ({width} cm)</option>)}
                 </select><ChevronDown size={16} /></span>
               </label>
             )}

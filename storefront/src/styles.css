@@ -305,6 +305,18 @@ button:disabled {
   font-weight: 800;
 }
 
+.price-unit {
+  display: block;
+  color: #6d6d6d;
+  font-size: 0.75rem;
+}
+
+.product-width {
+  color: #6d6d6d;
+  font-size: 0.85rem;
+  margin: -6px 0 12px;
+}
+
 .badge {
   background: #f2e4d7;
   color: var(--clay-dark);

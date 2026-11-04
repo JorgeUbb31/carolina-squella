@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { INVENTORY_PAGE_SIZE } from '../config/inventory'
+import { formatFabricWidth, INVENTORY_PAGE_SIZE } from '../config/inventory'
 
 export default function InventoryPage({
   user,
@@ -77,10 +77,10 @@ export default function InventoryPage({
                   {loading && <tr><td className="table-state" colSpan="6"><LoaderCircle className="spin" size={20} />Cargando productos…</td></tr>}
                   {!loading && products.map((product) => (
                     <tr key={product.id}>
-                      <td><div className="product-cell"><div className="product-thumbnail">{product.image_url ? <img src={product.image_url} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span>{(product.name || 'P').slice(0, 1)}</span>}</div><div><strong>{product.name}</strong><small>{product.material || 'Sin material'}{product.color ? ` · ${product.color}` : ''}</small></div></div></td>
+                      <td><div className="product-cell"><div className="product-thumbnail">{product.image_url ? <img src={product.image_url} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span>{(product.name || 'P').slice(0, 1)}</span>}</div><div><strong>{product.name}</strong><small>{product.material || 'Sin material'}{product.color ? ` · ${product.color}` : ''}{product.unit_type === 'metro' && product.width_cm ? ` · Ancho ${formatFabricWidth(product.width_cm)}` : ''}</small></div></div></td>
                       <td className="category-cell">{product.category?.name || 'Sin categoría'}</td>
                       <td className="price-cell">{money(Number(product.price || 0))}</td>
-                      <td><span className={`stock-pill ${product.stock === 0 ? 'stock-empty' : product.stock <= 5 ? 'stock-low' : 'stock-ok'}`}><i />{product.stock} <small>{product.unit_type || 'unid.'}</small></span></td>
+                      <td><span className={`stock-pill ${product.stock === 0 ? 'stock-empty' : product.stock <= 5 ? 'stock-low' : 'stock-ok'}`}><i />{product.stock} <small>{product.unit_type === 'metro' ? 'm' : product.unit_type || 'unid.'}</small></span></td>
                       <td><span className={`status-label ${product.is_active ? 'status-active' : 'status-inactive'}`}>{product.is_active ? 'Activo' : 'Inactivo'}</span></td>
                       <td><div className="row-actions"><button className="icon-button" type="button" title="Editar producto" aria-label={`Editar ${product.name}`} onClick={() => onEditProduct(product)}><Pencil size={16} /></button><button className="icon-button icon-danger" type="button" title="Eliminar producto" aria-label={`Eliminar ${product.name}`} onClick={() => onDeleteProduct(product)}><Trash2 size={16} /></button></div></td>
                     </tr>

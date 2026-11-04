@@ -6,7 +6,6 @@ import Modal from './Modal'
 export default function CategoryModal({ category, onClose, onSave }) {
   const [form, setForm] = useState(() => ({
     name: category?.name || '',
-    slug: category?.slug || '',
     description: category?.description || '',
     is_active: category?.is_active ?? true,
   }))
@@ -19,7 +18,7 @@ export default function CategoryModal({ category, onClose, onSave }) {
     setBusy(true)
     setError('')
     try {
-      await onSave(form, category?.id)
+      await onSave({ ...form, slug: createSlug(form.name) }, category?.id)
     } catch (saveError) {
       setError(saveError.message)
     } finally {
@@ -36,15 +35,7 @@ export default function CategoryModal({ category, onClose, onSave }) {
     >
         <form onSubmit={handleSubmit}>
           <div className="form-grid category-form-grid">
-            <label className="field field-wide">Nombre<input value={form.name} onChange={(event) => {
-              const name = event.target.value
-              setForm((current) => ({
-                ...current,
-                name,
-                slug: createSlug(name),
-              }))
-            }} required maxLength="255" /></label>
-            <label className="field field-wide">Slug<input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} required maxLength="255" /></label>
+            <label className="field field-wide">Nombre<input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required maxLength="255" /></label>
             <label className="field field-wide">Descripción<textarea rows="4" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
           </div>
           <label className="check-option category-active-option"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} /><span className="check-box"><Check size={13} /></span>Categoría activa</label>

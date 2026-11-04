@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatPrice } from '../services/home.service'
 import { submitOrder } from '../services/api'
 import ShippingNotice from '../components/ShippingNotice'
+import { formatProductQuantity, formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
 
 const initialForm = {
   customer_name: '',
@@ -73,10 +74,13 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
                 <img src={item.image_url} alt={item.name} />
                 <div>
                   <h2>{item.name}</h2>
-                  <p>{formatPrice(item.price)} por {item.unit_type || 'pieza'}</p>
+                  <p>{formatPrice(item.price)} por {getProductUnitLabel(item.unit_type)}</p>
+                  {item.unit_type === 'metro' && item.width_cm && (
+                    <p className="product-width">Ancho del rollo: {formatRollWidth(item.width_cm)}</p>
+                  )}
                   <div className="quantity-controls">
                     <button aria-label={`Disminuir cantidad de ${item.name}`} onClick={() => onUpdateQuantity(item.slug, item.quantity - 1)}>-</button>
-                    <span>{item.quantity}</span>
+                    <span>{formatProductQuantity(item.quantity, item.unit_type)}</span>
                     <button aria-label={`Aumentar cantidad de ${item.name}`} disabled={item.quantity >= item.stock} onClick={() => onUpdateQuantity(item.slug, item.quantity + 1)}>+</button>
                     <button className="remove-btn" onClick={() => onRemove(item.slug)}>Eliminar</button>
                   </div>

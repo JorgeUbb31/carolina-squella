@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cypress:open": "cypress open --browser edge",
+    "cypress:run": "cypress run --browser edge"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",
+    "cypress": "^16.2.0",
     "vite": "^8.2.2"
   }
 }
