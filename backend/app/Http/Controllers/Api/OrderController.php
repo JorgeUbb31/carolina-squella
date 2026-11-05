@@ -72,6 +72,7 @@ class OrderController extends Controller
                     'quantity' => $item->quantity,
                     'line_total' => $lineTotal,
                 ]);
+                $stockBefore = $product->stock;
                 $product->decrement('stock', $item->quantity);
             }
 

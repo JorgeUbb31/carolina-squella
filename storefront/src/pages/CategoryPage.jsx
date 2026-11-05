@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchCategoryProducts } from '../services/api'
 import { formatPrice } from '../services/home.service'
+import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
 
 export default function CategoryPage({ onAddToCart }) {
   const { slug } = useParams()
@@ -60,14 +61,17 @@ export default function CategoryPage({ onAddToCart }) {
                 <img src={product.image_url} alt={product.name} />
               </Link>
               <div className="product-body">
-                <span className="badge">{product.unit_type || 'pieza'}</span>
+                <span className="badge">Por {getProductUnitLabel(product.unit_type)}</span>
                 <h2><Link to={`/products/${product.slug}`}>{product.name}</Link></h2>
                 <div className="meta">
                   <span>{product.material || 'Textil'}</span>
                   <span>{product.color || 'Variado'}</span>
                 </div>
+                {product.unit_type === 'metro' && product.width_cm && (
+                  <p className="product-width">Ancho del rollo: {formatRollWidth(product.width_cm)}</p>
+                )}
                 <div className="price-row">
-                  <span className="price">{formatPrice(product.price)}</span>
+                  <span><span className="price">{formatPrice(product.price)}</span><small className="price-unit">por {getProductUnitLabel(product.unit_type)}</small></span>
                   <button className="primary-btn" onClick={() => onAddToCart(product)}>
                     Añadir
                   </button>
