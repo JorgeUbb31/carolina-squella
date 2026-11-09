@@ -70,3 +70,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 Webpay Plus is configured for Transbank's integration environment by default. Copy the Transbank settings from `.env.example` into `.env`; integration credentials may be left blank to use the SDK's test credentials. For production, set `TRANSBANK_ENVIRONMENT=production` and provide the commerce code and API key issued by Transbank. Do not commit credentials.
 
 The backend return URL is generated from `APP_URL`, so it must be reachable over public HTTPS for Transbank callbacks. Set `STOREFRONT_URL` to the public storefront origin. Pending payment inventory reservations expire after 30 minutes; run Laravel's scheduler continuously (`php artisan schedule:work`, or configure the host scheduler to run `php artisan schedule:run` every minute) so the expiry task releases them.
+
+## Quote requests
+
+The storefront saves quote requests in the `quote_requests` table and sends a receipt to the email address entered in the form. Run `php artisan migrate` to create the table. Configure a real mail transport using `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, and related mail settings; with the default `log` mailer the request is stored but no email is delivered.

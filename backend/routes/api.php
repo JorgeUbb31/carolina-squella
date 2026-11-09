@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\QuoteRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -18,6 +19,7 @@ Route::prefix('v1')->group(function () {
     Route::put('cart', [CartController::class, 'update']);
     Route::delete('cart', [CartController::class, 'destroy']);
     Route::post('orders', [OrderController::class, 'store']);
+    Route::post('quote-requests', [QuoteRequestController::class, 'store'])->middleware('throttle:5,1');
     Route::get('orders/{order:order_number}/payment-status', [OrderController::class, 'paymentStatus']);
     Route::match(['get', 'post'], 'payments/transbank/return', [OrderController::class, 'transbankReturn'])
         ->name('payments.transbank.return');

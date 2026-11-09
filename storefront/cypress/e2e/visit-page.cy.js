@@ -13,6 +13,19 @@ const products = [
     image_url: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
     category: { name: 'Tapicería', slug: 'tapiceria' },
   },
+  {
+    id: 2,
+    slug: 'cortina-blackout',
+    name: 'Cortina blackout',
+    description: 'Cortina opaca para dormitorio.',
+    price: '9900.00',
+    stock: 8,
+    unit_type: 'pieza',
+    material: 'Poliéster',
+    color: 'Gris',
+    image_url: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+    category: { name: 'Cortinas', slug: 'cortinas' },
+  },
 ]
 
 const categories = [
@@ -22,6 +35,13 @@ const categories = [
     slug: 'tapiceria',
     description: 'Telas para tapicería.',
     products_count: products.length,
+  },
+  {
+    id: 2,
+    name: 'Cortinas',
+    slug: 'cortinas',
+    description: 'Cortinas para cada espacio.',
+    products_count: 1,
   },
 ]
 
@@ -50,6 +70,62 @@ describe('Visita de la tienda', () => {
       .should('be.visible')
       .and('contain', 'Ancho del rollo: 2,50 m')
       .and('contain', 'por metro')
+  })
+
+  it('abre la colección completa y filtra y ordena productos', () => {
+    cy.intercept('GET', '**/api/v1/products?page=*', (request) => {
+      const page = new URL(request.url).searchParams.get('page')
+      if (page === '1') {
+        request.reply({ data: [products[0]], current_page: 1, last_page: 2, total: 2 })
+      } else {
+        request.reply({ data: [products[1]], current_page: 2, last_page: 2, total: 2 })
+      }
+    }).as('catalogProducts')
+
+    cy.visit('/')
+    cy.wait('@loadCart')
+    cy.contains('a', 'Ver colección').click()
+
+    cy.location('pathname').should('eq', '/products')
+    cy.contains('h1', 'Todos los productos').should('be.visible')
+    cy.get('.product-card').should('have.length', 2)
+    cy.get('.product-card h2').first().should('contain', 'Tela de tapicería lino')
+
+    cy.get('select[name="sortOrder"]').select('price-asc')
+    cy.get('.product-card h2').first().should('contain', 'Cortina blackout')
+    cy.get('select[name="categorySlug"]').select('tapiceria')
+    cy.get('.product-card').should('have.length', 1)
+    cy.contains('.product-card', 'Tela de tapicería lino').should('be.visible')
+    cy.get('input[name="search"]').type('sin coincidencias')
+    cy.contains('No encontramos productos con esos filtros.').should('be.visible')
+  })
+
+  it('permite enviar una solicitud de cotización desde la portada', () => {
+    cy.intercept('POST', '**/api/v1/quote-requests', {
+      statusCode: 201,
+      body: {
+        message: 'Recibimos tu solicitud y enviamos una confirmación a tu correo.',
+        email_sent: true,
+      },
+    }).as('submitQuote')
+
+    cy.visit('/')
+    cy.wait('@loadCart')
+    cy.contains('button', 'Solicitar cotización').click()
+    cy.get('#solicitar-cotizacion').should('be.visible')
+    cy.get('input[name="name"]').type('Jorge Díaz')
+    cy.get('input[name="email"]').type('jorge@example.com')
+    cy.get('input[name="phone"]').type('+56912345678')
+    cy.get('textarea[name="details"]').type('Necesito cotizar cortinas para dos ventanas.')
+    cy.contains('button', 'Enviar solicitud').click()
+
+    cy.wait('@submitQuote').its('request.body').should('deep.equal', {
+      name: 'Jorge Díaz',
+      email: 'jorge@example.com',
+      phone: '+56912345678',
+      details: 'Necesito cotizar cortinas para dos ventanas.',
+    })
+    cy.contains('Recibimos tu solicitud y enviamos una confirmación a tu correo.').should('be.visible')
   })
 
   it('navega desde la página principal a una categoría', () => {

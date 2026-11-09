@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { fetchOrderPaymentStatus } from '../services/api'
-import { getCartToken } from '../services/cart.service'
+import usePaymentResult from '../hooks/usePaymentResult'
 
 const paymentMessages = {
   approved: {
@@ -34,35 +32,9 @@ const paymentMessages = {
 export default function PaymentResultPage({ cartError, onPaymentApproved }) {
   const [searchParams] = useSearchParams()
   const orderNumber = searchParams.get('order')
-  const [verifiedStatus, setVerifiedStatus] = useState('pending')
-  const [verificationError, setVerificationError] = useState('')
+  const { status, error: verificationError } = usePaymentResult(orderNumber, onPaymentApproved)
 
-  useEffect(() => {
-    if (!orderNumber) {
-      setVerifiedStatus('failed')
-      return
-    }
-
-    fetchOrderPaymentStatus(orderNumber)
-      .then(({ status, cart_token: orderCartToken }) => {
-        const statusByOrderState = {
-          paid: 'approved',
-          payment_cancelled: 'cancelled',
-          payment_expired: 'expired',
-          payment_failed: 'failed',
-          payment_review: 'review',
-          pending_payment: 'pending'
-        }
-        const resultStatus = statusByOrderState[status] ?? 'pending'
-        setVerifiedStatus(resultStatus)
-        if (status === 'paid' && orderCartToken === getCartToken()) {
-          onPaymentApproved()
-        }
-      })
-      .catch((error) => setVerificationError(error.message))
-  }, [orderNumber, onPaymentApproved])
-
-  const result = paymentMessages[verifiedStatus] ?? paymentMessages.pending
+  const result = paymentMessages[status] ?? paymentMessages.pending
 
   return (
     <main className="container page-enter">

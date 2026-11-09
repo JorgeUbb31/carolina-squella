@@ -1,33 +1,11 @@
-import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchCategoryProducts } from '../services/api'
-import { formatPrice } from '../services/home.service'
-import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
+import useCategoryProducts from '../hooks/useCategoryProducts'
+import ProductCard from '../components/ProductCard'
+import { getProductUnitLabel } from '../utils/productFormatters'
 
 export default function CategoryPage({ onAddToCart }) {
   const { slug } = useParams()
-  const [category, setCategory] = useState(null)
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    const loadCategory = async () => {
-      try {
-        setLoading(true)
-        setError('')
-        const data = await fetchCategoryProducts(slug)
-        setCategory(data.category)
-        setProducts(data.products ?? [])
-      } catch (loadError) {
-        setError(loadError.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadCategory()
-  }, [slug])
+  const { category, products, loading, error } = useCategoryProducts(slug)
 
   if (loading) return <main className="page-state">Cargando Productos...</main>
 
@@ -56,28 +34,13 @@ export default function CategoryPage({ onAddToCart }) {
       ) : (
         <div className="grid">
           {products.map((product, index) => (
-            <article className="product-card reveal-card" style={{ '--delay': `${index * 80}ms` }} key={product.slug}>
-              <Link to={`/products/${product.slug}`}>
-                <img src={product.image_url} alt={product.name} />
-              </Link>
-              <div className="product-body">
-                <span className="badge">Por {getProductUnitLabel(product.unit_type)}</span>
-                <h2><Link to={`/products/${product.slug}`}>{product.name}</Link></h2>
-                <div className="meta">
-                  <span>{product.material || 'Textil'}</span>
-                  <span>{product.color || 'Variado'}</span>
-                </div>
-                {product.unit_type === 'metro' && product.width_cm && (
-                  <p className="product-width">Ancho del rollo: {formatRollWidth(product.width_cm)}</p>
-                )}
-                <div className="price-row">
-                  <span><span className="price">{formatPrice(product.price)}</span><small className="price-unit">por {getProductUnitLabel(product.unit_type)}</small></span>
-                  <button className="primary-btn" onClick={() => onAddToCart(product)}>
-                    Añadir
-                  </button>
-                </div>
-              </div>
-            </article>
+            <ProductCard
+              key={product.slug}
+              product={product}
+              index={index}
+              badge={`Por ${getProductUnitLabel(product.unit_type)}`}
+              onAddToCart={onAddToCart}
+            />
           ))}
         </div>
       )}

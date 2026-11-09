@@ -1,29 +1,11 @@
-import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchProduct } from '../services/api'
+import useProductDetails from '../hooks/useProductDetails'
 import { formatPrice } from '../services/home.service'
 import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
 
 export default function ProductPage({ onAddToCart }) {
   const { slug } = useParams()
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    const loadProduct = async () => {
-      try {
-        setError('')
-        setProduct(await fetchProduct(slug))
-      } catch (loadError) {
-        setError(loadError.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProduct()
-  }, [slug])
+  const { product, loading, error } = useProductDetails(slug)
 
   if (loading) return <main className="page-state">Cargando producto...</main>
   if (error || !product) {

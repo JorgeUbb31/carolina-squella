@@ -1,32 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { formatPrice, loadHomeData } from '../services/home.service'
-import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
+import { formatPrice } from '../services/home.service'
+import useHomePageData from '../hooks/useHomePageData'
+import ProductCard from '../components/ProductCard'
+import QuoteRequestSection from '../components/QuoteRequestSection'
 
 export default function HomePage({ onAddToCart }) {
-  const [categories, setCategories] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setError('')
-        const homeData = await loadHomeData()
-
-        setCategories(homeData.categories)
-        setProducts(homeData.products)
-      } catch (error) {
-        console.error('No se pudo cargar la tienda:', error)
-        setError(error.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
-  }, [])
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const { categories, products, loading, error } = useHomePageData()
 
   return (
     <>
@@ -48,8 +29,10 @@ export default function HomePage({ onAddToCart }) {
               </p>
 
               <div className="hero-actions">
-                <button className="primary-btn">Ver colección</button>
-                <button className="secondary-btn">Solicitar cotización</button>
+                <Link className="primary-btn" to="/products">Ver colección</Link>
+                <button className="secondary-btn" type="button" onClick={() => setQuoteOpen(true)}>
+                  Solicitar cotización
+                </button>
               </div>
             </div>
 
@@ -64,6 +47,8 @@ export default function HomePage({ onAddToCart }) {
             </div>
           </div>
         </section>
+
+        <QuoteRequestSection open={quoteOpen} onClose={() => setQuoteOpen(false)} />
 
         <section className="section">
           <div className="container">
@@ -90,7 +75,7 @@ export default function HomePage({ onAddToCart }) {
           </div>
         </section>
 
-        <section className="section">
+        <section className="section" id="productos-destacados">
           <div className="container">
             <div className="section-title">
               <h2>Productos destacados</h2>
@@ -110,27 +95,14 @@ export default function HomePage({ onAddToCart }) {
             ) : (
               <div className="grid">
                   {products.map((product, index) => (
-                    <article className="product-card reveal-card" style={{ '--delay': `${index * 80}ms` }} key={product.slug || product.name}>
-                    <Link to={`/products/${product.slug}`}>
-                      <img src={product.image_url} alt={product.name} />
-                    </Link>
-                    <div className="product-body">
-                      <div className="badge">{product.badge || (product.unit_type === 'metro' ? 'Venta por metro' : 'Destacado')}</div>
-                      <h3><Link to={`/products/${product.slug}`}>{product.name}</Link></h3>
-                      <div className="meta">
-                        <span>{product.material || 'Textil'}</span>
-                        <span>{product.color || 'Variado'}</span>
-                      </div>
-                      {product.unit_type === 'metro' && product.width_cm && (
-                        <p className="product-width">Ancho del rollo: {formatRollWidth(product.width_cm)}</p>
-                      )}
-                      <div className="price-row">
-                        <span><span className="price">{formatPrice(product.price)}</span><small className="price-unit">por {getProductUnitLabel(product.unit_type)}</small></span>
-                        <button className="primary-btn" onClick={() => onAddToCart(product)}>Añadir</button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                    <ProductCard
+                      key={product.slug || product.name}
+                      product={product}
+                      index={index}
+                      titleLevel={3}
+                      onAddToCart={onAddToCart}
+                    />
+                  ))}
               </div>
             )}
           </div>
