@@ -3,8 +3,10 @@
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Tests\TestCase;
 
 it('allows an admin to create, view, update, and delete an empty category', function () {
+    /** @var TestCase $this */
     $admin = User::factory()->create(['is_admin' => true]);
     $token = $admin->createToken('category-test')->plainTextToken;
 
@@ -35,6 +37,7 @@ it('allows an admin to create, view, update, and delete an empty category', func
 });
 
 it('prevents deleting a category that contains products', function () {
+    /** @var TestCase $this */
     $admin = User::factory()->create(['is_admin' => true]);
     $token = $admin->createToken('category-test')->plainTextToken;
     $category = Category::query()->create([

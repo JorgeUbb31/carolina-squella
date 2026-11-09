@@ -3,8 +3,10 @@
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Tests\TestCase;
 
 it('requires an admin token for admin product routes', function () {
+    /** @var TestCase $this */
     $this->getJson('/api/v1/admin/products')->assertUnauthorized();
 
     $user = User::factory()->create();
@@ -14,6 +16,7 @@ it('requires an admin token for admin product routes', function () {
 });
 
 it('allows an admin to create, view, update, and delete products', function () {
+    /** @var TestCase $this */
     $admin = createStockAdmin();
     $category = Category::query()->create([
         'name' => 'Telas',
@@ -57,6 +60,7 @@ it('allows an admin to create, view, update, and delete products', function () {
 });
 
 it('rejects negative stock when updating a product', function () {
+    /** @var TestCase $this */
     $admin = createStockAdmin();
     $product = createStockManagedProduct(2);
 

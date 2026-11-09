@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\User;
+use Tests\TestCase;
 
 it('allows an admin to log in and receive a Sanctum token', function () {
+    /** @var TestCase $this */
     User::factory()->create([
         'email' => 'admin@example.com',
         'password' => 'correct-password',
@@ -21,6 +23,7 @@ it('allows an admin to log in and receive a Sanctum token', function () {
 });
 
 it('rejects invalid login credentials', function () {
+    /** @var TestCase $this */
     User::factory()->create([
         'email' => 'admin@example.com',
         'password' => 'correct-password',
@@ -36,6 +39,7 @@ it('rejects invalid login credentials', function () {
 });
 
 it('forbids non-admin users from logging in to the admin api', function () {
+    /** @var TestCase $this */
     User::factory()->create([
         'email' => 'customer@example.com',
         'password' => 'correct-password',
@@ -51,6 +55,7 @@ it('forbids non-admin users from logging in to the admin api', function () {
 });
 
 it('rate limits login after five attempts', function () {
+    /** @var TestCase $this */
     User::factory()->create([
         'email' => 'admin@example.com',
         'password' => 'correct-password',
@@ -71,6 +76,7 @@ it('rate limits login after five attempts', function () {
 });
 
 it('seeds an admin account that can log in', function () {
+    /** @var TestCase $this */
     $this->seed();
 
     $this->postJson('/api/v1/auth/login', [

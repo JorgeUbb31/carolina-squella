@@ -3,8 +3,10 @@
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Product;
+use Tests\TestCase;
 
 it('returns only active products in the catalog', function () {
+    /** @var TestCase $this */
     $activeProduct = createCatalogCartProduct('cortina-activa');
     createCatalogCartProduct('cortina-inactiva', isActive: false);
 
@@ -15,6 +17,7 @@ it('returns only active products in the catalog', function () {
 });
 
 it('includes the category in product details', function () {
+    /** @var TestCase $this */
     $category = Category::query()->create([
         'name' => 'Cortinas',
         'slug' => 'cortinas',
@@ -29,6 +32,7 @@ it('includes the category in product details', function () {
 });
 
 it('updates and reads cart items with product details', function () {
+    /** @var TestCase $this */
     $product = createCatalogCartProduct('lino-natural', stock: 5);
     $product->update([
         'unit_type' => 'metro',
@@ -54,6 +58,7 @@ it('updates and reads cart items with product details', function () {
 });
 
 it('rolls back existing cart items when an update is rejected', function () {
+    /** @var TestCase $this */
     $existingProduct = createCatalogCartProduct('producto-actual', stock: 4);
     $unavailableProduct = createCatalogCartProduct('producto-sin-stock', stock: 1);
     $cartToken = '9e2e3c3f-5f9a-4a08-99e2-4b8bbf21d683';

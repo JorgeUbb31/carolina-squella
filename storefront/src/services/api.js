@@ -44,3 +44,4 @@ export const submitOrder = (order) => request('/orders', {
   method: 'POST',
   body: JSON.stringify(order)
 })
+export const fetchOrderPaymentStatus = (orderNumber) => request(`/orders/${encodeURIComponent(orderNumber)}/payment-status`)

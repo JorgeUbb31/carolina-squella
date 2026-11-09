@@ -64,3 +64,9 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Webpay Plus
+
+Webpay Plus is configured for Transbank's integration environment by default. Copy the Transbank settings from `.env.example` into `.env`; integration credentials may be left blank to use the SDK's test credentials. For production, set `TRANSBANK_ENVIRONMENT=production` and provide the commerce code and API key issued by Transbank. Do not commit credentials.
+
+The backend return URL is generated from `APP_URL`, so it must be reachable over public HTTPS for Transbank callbacks. Set `STOREFRONT_URL` to the public storefront origin. Pending payment inventory reservations expire after 30 minutes; run Laravel's scheduler continuously (`php artisan schedule:work`, or configure the host scheduler to run `php artisan schedule:run` every minute) so the expiry task releases them.

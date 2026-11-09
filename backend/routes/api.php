@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminProductController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -18,6 +18,9 @@ Route::prefix('v1')->group(function () {
     Route::put('cart', [CartController::class, 'update']);
     Route::delete('cart', [CartController::class, 'destroy']);
     Route::post('orders', [OrderController::class, 'store']);
+    Route::get('orders/{order:order_number}/payment-status', [OrderController::class, 'paymentStatus']);
+    Route::match(['get', 'post'], 'payments/transbank/return', [OrderController::class, 'transbankReturn'])
+        ->name('payments.transbank.return');
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
     Route::middleware('auth:sanctum')->group(function () {

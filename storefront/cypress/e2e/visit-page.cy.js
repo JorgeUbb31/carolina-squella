@@ -78,6 +78,40 @@ describe('Visita de la tienda', () => {
       .should('contain', '2,50 m')
   })
 
+  it('pide los datos después de continuar y filtra las comunas por región', () => {
+    cy.intercept('PUT', '**/api/v1/cart', { items: [] })
+    cy.visit('/')
+    cy.wait('@loadCart')
+
+    cy.contains('label', 'Correo electrónico').should('not.exist')
+    cy.contains('.product-card', 'Tela de tapicería lino')
+      .contains('button', 'Añadir')
+      .click()
+    cy.contains('.cart-link', 'Carrito (1)').click()
+    cy.location('pathname').should('eq', '/cart')
+    cy.contains('button', 'Continuar con la compra').click()
+
+    cy.contains('h2', 'Datos de entrega').should('be.visible')
+    cy.contains('Transferencia bancaria').should('be.visible')
+    cy.get('select[name="delivery_region"]').find('option').should('have.length', 17)
+    cy.get('select[name="delivery_city"]').should('be.disabled')
+
+    cy.get('select[name="delivery_region"]').select('Región de Valparaíso')
+    cy.get('select[name="delivery_city"]')
+      .should('not.be.disabled')
+      .find('option')
+      .should('have.length', 39)
+    cy.get('select[name="delivery_city"]').select('Viña del Mar')
+
+    cy.get('select[name="delivery_region"]').select('Región Metropolitana de Santiago')
+    cy.get('select[name="delivery_city"]')
+      .should('have.value', '')
+      .find('option')
+      .should('have.length', 53)
+      .and('contain', 'Santiago')
+      .and('not.contain', 'Viña del Mar')
+  })
+
   it('permite añadir un producto y verlo en el carrito', () => {
     cy.intercept('PUT', '**/api/v1/cart', (request) => {
       const { items } = request.body
