@@ -74,6 +74,7 @@ class CartController extends Controller
                 'price' => $item->product->price,
                 'image_url' => $item->product->image_url,
                 'unit_type' => $item->product->unit_type,
+                'width_cm' => $item->product->width_cm,
                 'stock' => $item->product->stock,
                 'quantity' => $item->quantity,
             ])->values(),

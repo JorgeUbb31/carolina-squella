@@ -184,8 +184,73 @@ button:disabled {
 
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 28px;
+}
+
+.hero-actions .primary-btn,
+.hero-actions .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quote-section {
+  scroll-margin-top: 24px;
+}
+
+.quote-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  margin: 0 auto;
+  max-width: 720px;
+  padding: clamp(20px, 4vw, 36px);
+}
+
+.quote-card .section-title {
+  margin-bottom: 12px;
+}
+
+.quote-card > p,
+.quote-card [role="status"] > p {
+  color: var(--muted);
+}
+
+.quote-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.quote-form label {
+  color: var(--ink);
+  display: grid;
+  font-size: 0.9rem;
+  gap: 6px;
+}
+
+.quote-form input,
+.quote-form textarea {
+  background: #fff;
+  border: 1px solid #d8cec5;
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  padding: 11px 12px;
+  width: 100%;
+}
+
+.quote-form textarea {
+  resize: vertical;
+}
+
+.quote-form input:focus,
+.quote-form textarea:focus {
+  border-color: var(--clay);
+  outline: 2px solid rgba(155, 98, 69, 0.18);
 }
 
 .hero-card {
@@ -305,6 +370,18 @@ button:disabled {
   font-weight: 800;
 }
 
+.price-unit {
+  display: block;
+  color: #6d6d6d;
+  font-size: 0.75rem;
+}
+
+.product-width {
+  color: #6d6d6d;
+  font-size: 0.85rem;
+  margin: -6px 0 12px;
+}
+
 .badge {
   background: #f2e4d7;
   color: var(--clay-dark);
@@ -404,6 +481,54 @@ button:disabled {
 .category-heading p {
   color: #666;
   font-size: 1.1rem;
+}
+
+.catalog-page {
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.catalog-controls {
+  align-items: end;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  margin-bottom: 20px;
+  padding: 18px;
+}
+
+.catalog-controls label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.85rem;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.catalog-controls input,
+.catalog-controls select {
+  background: #fff;
+  border: 1px solid #d8cec5;
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 42px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.catalog-controls input:focus,
+.catalog-controls select:focus {
+  border-color: var(--clay);
+  outline: 2px solid rgba(155, 98, 69, 0.18);
+}
+
+.catalog-count {
+  color: var(--muted);
+  margin: 0 0 16px;
 }
 
 .product-detail-grid {
@@ -592,7 +717,8 @@ button:disabled {
   gap: 6px;
 }
 
-.checkout-form input {
+.checkout-form input,
+.checkout-form select {
   background: #fff;
   border: 1px solid #d8cec5;
   border-radius: 6px;
@@ -604,9 +730,77 @@ button:disabled {
   width: 100%;
 }
 
-.checkout-form input:focus {
+.checkout-form select:disabled {
+  background: #f3f0ec;
+  color: #777;
+  cursor: not-allowed;
+}
+
+.checkout-form input:focus,
+.checkout-form select:focus {
   border-color: var(--clay);
   outline: 2px solid rgba(155, 98, 69, 0.18);
+}
+
+.checkout-details > p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.checkout-back {
+  margin-bottom: 20px;
+}
+
+.payment-options {
+  border: 1px solid #d8cec5;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 14px;
+}
+
+.payment-options legend {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0 6px;
+}
+
+.payment-options label {
+  align-items: start;
+  display: grid;
+  gap: 5px 9px;
+  grid-template-columns: auto 1fr;
+}
+
+.payment-options input {
+  grid-row: span 2;
+  margin: 3px 0 0;
+  width: auto;
+}
+
+.payment-options small {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.checkout-order-item {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.checkout-order-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.checkout-order-item strong {
+  white-space: nowrap;
 }
 
 .form-row {
@@ -696,6 +890,10 @@ button:disabled {
 @media (max-width: 700px) {
   .product-detail-grid,
   .cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-controls {
     grid-template-columns: 1fr;
   }
 

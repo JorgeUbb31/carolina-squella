@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'transbank' => [
+        'environment' => env('TRANSBANK_ENVIRONMENT', 'integration'),
+        'commerce_code' => env('TRANSBANK_COMMERCE_CODE'),
+        'api_key' => env('TRANSBANK_API_KEY'),
+        'storefront_url' => env('STOREFRONT_URL', 'http://localhost:5173'),
+        'payment_expiration_minutes' => 30,
+    ],
+
 ];

@@ -9,10 +9,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::query()->firstOrCreate(
+        $admin = User::query()->updateOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => bcrypt('password')]
+            [
+                'name' => 'Test User',
+                'password' => 'password',
+            ]
         );
+        $admin->forceFill(['is_admin' => true])->save();
 
         $this->call([
             CategorySeeder::class,

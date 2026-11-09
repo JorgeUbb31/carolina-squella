@@ -16,8 +16,10 @@ jobs:
 
     env:
       APP_NAME: api-backend
+      ADMIN_NAME: carolina-admin
       STOREFRONT_NAME: carolina-storefront
       APP_PORT: "8000"
+      ADMIN_PORT: "3001"
       STOREFRONT_PORT: "5173"
       NODE_ENV: production
 
@@ -79,10 +81,17 @@ jobs:
           set -e
 
           BACKEND_ENV_FILE="$HOME/backend.env"
+          ADMIN_ENV_FILE="$HOME/admin.env"
           STOREFRONT_ENV_FILE="$HOME/storefront.env"
 
           test -r "$BACKEND_ENV_FILE" || {
             echo "No existe o no se puede leer $BACKEND_ENV_FILE"
+            exit 1
+          }
+
+          test -r "$ADMIN_ENV_FILE" || {
+            echo "No existe o no se puede leer $ADMIN_ENV_FILE"
+            echo "Debe contener VITE_API_URL con la URL pública del backend"
             exit 1
           }
 
@@ -93,11 +102,17 @@ jobs:
           }
 
           cp "$BACKEND_ENV_FILE" backend/.env
+          cp "$ADMIN_ENV_FILE" admin/.env.production
           cp "$STOREFRONT_ENV_FILE" storefront/.env.production
-          chmod 600 backend/.env storefront/.env.production
+          chmod 600 backend/.env admin/.env.production storefront/.env.production
 
           grep -q '^DB_CONNECTION=pgsql$' backend/.env || {
             echo "DB_CONNECTION debe ser pgsql"
+            exit 1
+          }
+
+          grep -q '^VITE_API_URL=' admin/.env.production || {
+            echo "Falta VITE_API_URL en $ADMIN_ENV_FILE"
             exit 1
           }
 
@@ -237,6 +252,60 @@ jobs:
           pm2 save
           pm2 status "$APP_NAME"
 
+      - name: Instalar dependencias del admin
+        working-directory: admin
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          npm install \
+            --include=dev \
+            --no-audit \
+            --no-fund \
+            --prefer-offline
+
+          test -x node_modules/.bin/vite || {
+            echo "Vite no fue instalado correctamente en admin"
+            exit 1
+          }
+
+      - name: Construir admin
+        working-directory: admin
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          echo "API pública configurada desde admin/.env.production"
+
+          npm run build
+
+          test -f dist/index.html || {
+            echo "No se generó admin/dist/index.html"
+            exit 1
+          }
+
+          echo "Admin compilado correctamente"
+
+      - name: Servir admin con PM2
+        working-directory: admin
+        timeout-minutes: 2
+        run: |
+          set -e
+
+          test -f dist/index.html || {
+            echo "No existe admin/dist/index.html"
+            exit 1
+          }
+
+          pm2 delete "$ADMIN_NAME" >/dev/null 2>&1 || true
+
+          pm2 serve dist "$ADMIN_PORT" \
+            --name "$ADMIN_NAME" \
+            --spa
+
+          pm2 save
+          pm2 status "$ADMIN_NAME"
+
       - name: Instalar dependencias del storefront
         working-directory: storefront
         timeout-minutes: 5
@@ -325,6 +394,27 @@ jobs:
 
             sleep 1
           done
+
+      - name: Verificar admin por HTTP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --max-time 10 \
+            "http://127.0.0.1:${ADMIN_PORT}/" \
+            -o /tmp/admin.html
+
+          grep -q '<div id="root"></div>' /tmp/admin.html || {
+            echo "El admin no devolvió el index esperado"
+            cat /tmp/admin.html
+            exit 1
+          }
+
+          echo "Admin funcionando correctamente"
 
       - name: Verificar storefront por HTTP
         timeout-minutes: 1

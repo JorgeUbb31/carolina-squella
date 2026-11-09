@@ -1,6 +1,10 @@
 import { createPortal } from 'react-dom'
 
-export default function ShippingNotice({ onCancel, onConfirm, submitting = false }) {
+export default function ShippingNotice({ onCancel, onConfirm, paymentMethod, submitting = false }) {
+  const paymentMessage = paymentMethod === 'webpay_plus'
+    ? 'El pago se realizará en el sitio seguro de Transbank, donde podrás autorizarlo.'
+    : 'Al continuar, registraremos el pedido como pendiente de pago; no se realizará ningún cobro en línea.'
+
   const handleKeyDown = (event) => {
     if (event.key === 'Escape') onCancel()
   }
@@ -18,7 +22,7 @@ export default function ShippingNotice({ onCancel, onConfirm, submitting = false
         <span className="eyebrow">Importante</span>
         <h2 id="shipping-notice-title">El envío no está incluido</h2>
         <p id="shipping-notice-description">
-          El costo del despacho no está cubierto por la tienda y debe pagarlo quien recibe la compra. Te informaremos el valor antes de coordinar el envío. Al continuar, registraremos el pedido como pendiente de pago; no se realizará ningún cobro en línea.
+          El costo del despacho no está cubierto por la tienda y debe pagarlo quien recibe la compra. Te informaremos el valor antes de coordinar el envío. {paymentMessage}
         </p>
         <div className="shipping-notice-actions">
           <button className="secondary-btn" type="button" autoFocus onClick={onCancel}>Volver</button>

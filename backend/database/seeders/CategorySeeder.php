@@ -35,6 +35,18 @@ class CategorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'name' => 'Tapicería',
+                'slug' => 'tapiceria',
+                'description' => 'Telas y materiales para tapicería de muebles y decoración.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Otras telas',
+                'slug' => 'otras-telas',
+                'description' => 'Telas especiales y alternativas para necesidades específicas.',
+                'is_active' => true,
+            ],
+            [
                 'name' => 'Telas Chilenas',
                 'slug' => 'telas-chilenas',
                 'description' => 'Telas de origen chileno seleccionadas para el hogar.',

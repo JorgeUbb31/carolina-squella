@@ -17,9 +17,16 @@ class Order extends Model
         'delivery_region',
         'payment_method',
         'status',
+        'cart_token',
         'subtotal',
         'shipping_total',
         'total',
+        'transbank_token',
+        'transbank_buy_order',
+        'transbank_session_id',
+        'transbank_authorization_code',
+        'paid_at',
+        'payment_expires_at',
     ];
 
     protected function casts(): array
@@ -28,6 +35,8 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'shipping_total' => 'decimal:2',
             'total' => 'decimal:2',
+            'paid_at' => 'datetime',
+            'payment_expires_at' => 'datetime',
         ];
     }
 

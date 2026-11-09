@@ -48,6 +48,26 @@ Este proyecto implementa un e-commerce completo con:
 
 ## 🚀 Instalación Rápida
 
+### Con Docker (proyecto completo)
+
+Requiere Docker Desktop con Docker Compose v2.24 o posterior. Desde PowerShell en la raíz del proyecto:
+
+```powershell
+.\docker-up.ps1
+```
+
+Compose inicia PostgreSQL, ejecuta las migraciones de Laravel, mantiene activo el scheduler y levanta las tres aplicaciones:
+
+- Storefront: `http://localhost:5173`
+- Panel admin: `http://localhost:3001`
+- Backend Laravel/API: `http://localhost:8000`
+
+Los datos de PostgreSQL se conservan en el volumen `postgres_data`. Para detener los servicios usa `docker compose down`; para borrar también la base de datos local, usa `docker compose down -v`. El script crea `backend/.env` desde `.env.example` si todavía no existe. Las variables de aplicación y base de datos se leen desde `backend/.env`; la tienda usa `storefront/.env` y el admin puede usar `admin/.env`. Los defaults de Docker están en `backend/.env.docker.example`; edita `backend/.env` para personalizar URLs y credenciales. PostgreSQL recibe solo las variables de base de datos necesarias.
+
+Para ejecutar comandos Laravel: `docker compose exec backend php artisan <comando>`.
+
+### Instalación manual
+
 ### 1️⃣ Backend (Laravel)
 
 ```bash
