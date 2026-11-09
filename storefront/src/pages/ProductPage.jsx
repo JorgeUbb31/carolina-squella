@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchProduct } from '../services/api'
 import { formatPrice } from '../services/home.service'
+import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
 
 export default function ProductPage({ onAddToCart }) {
   const { slug } = useParams()
@@ -35,20 +36,24 @@ export default function ProductPage({ onAddToCart }) {
   }
 
   return (
-    <main className="product-detail container">
+    <main className="product-detail container page-enter">
       <Link className="back-link" to="/">Volver a la tienda</Link>
       <div className="product-detail-grid">
         <img src={product.image_url} alt={product.name} />
         <section>
           <span className="badge">{product.category?.name || 'Textil'}</span>
           <h1>{product.name}</h1>
-          <p className="detail-price">{formatPrice(product.price)}</p>
+          <p className="detail-price">{formatPrice(product.price)} <small>por {getProductUnitLabel(product.unit_type)}</small></p>
           <p>{product.description}</p>
           <dl className="specifications">
             <div><dt>Material</dt><dd>{product.material || 'No informado'}</dd></div>
             <div><dt>Color</dt><dd>{product.color || 'No informado'}</dd></div>
-            <div><dt>Unidad</dt><dd>{product.unit_type || 'pieza'}</dd></div>
-            <div><dt>Medidas</dt><dd>{product.width_cm && product.height_cm ? `${product.width_cm} x ${product.height_cm} cm` : 'A medida'}</dd></div>
+            <div><dt>Unidad</dt><dd>{getProductUnitLabel(product.unit_type)}</dd></div>
+            {product.unit_type === 'metro' ? (
+              <div><dt>Ancho del rollo</dt><dd>{formatRollWidth(product.width_cm) || 'No informado'}</dd></div>
+            ) : (
+              <div><dt>Medidas</dt><dd>{product.width_cm && product.height_cm ? `${product.width_cm} x ${product.height_cm} cm` : 'A medida'}</dd></div>
+            )}
           </dl>
           <button className="primary-btn" onClick={() => onAddToCart(product)}>
             Añadir al carrito

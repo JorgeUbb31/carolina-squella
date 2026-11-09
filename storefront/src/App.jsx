@@ -1,23 +1,63 @@
-import { useState } from 'react'
-import { Link, Routes, Route } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, Routes, Route, useLocation } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
+import CategoryPage from './pages/CategoryPage'
+import PaymentResultPage from './pages/PaymentResultPage'
 import {
   addItem,
   clearCart,
   getCartItemCount,
+  getCartToken,
   readCart,
   removeItem,
   saveCart,
   updateItemQuantity
 } from './services/cart.service'
+import { clearRemoteCart, fetchCart, saveRemoteCart } from './services/api'
 
 export default function App() {
   const [cartItems, setCartItems] = useState(readCart)
+  const [cartError, setCartError] = useState('')
+  const cartToken = getCartToken()
+  const location = useLocation()
+
+  const emptyCart = useCallback(() => {
+    setCartItems(clearCart())
+    setCartError('')
+    clearRemoteCart(cartToken).catch((error) => setCartError(error.message))
+  }, [cartToken])
+
+  useEffect(() => {
+    fetchCart(cartToken)
+      .then(async ({ items }) => {
+        if (items?.length) {
+          setCartItems(saveCart(items))
+          return
+        }
+
+        if (location.pathname === '/payment/result') {
+          setCartItems(saveCart([]))
+          return
+        }
+
+        const legacyItems = readCart()
+        if (legacyItems.length) {
+          const savedCart = await saveRemoteCart(cartToken, legacyItems)
+          setCartItems(saveCart(savedCart.items ?? legacyItems))
+          return
+        }
+
+        setCartItems(saveCart([]))
+      })
+      .catch((error) => setCartError(error.message))
+  }, [cartToken, emptyCart, location.pathname, location.search])
 
   const persistCart = (items) => {
     setCartItems(saveCart(items))
+    setCartError('')
+    saveRemoteCart(cartToken, items).catch((error) => setCartError(error.message))
   }
 
   const addToCart = (product) => {
@@ -32,10 +72,6 @@ export default function App() {
     persistCart(removeItem(cartItems, slug))
   }
 
-  const emptyCart = () => {
-    setCartItems(clearCart())
-  }
-
   return (
     <>
       <header className="site-header">
@@ -44,8 +80,10 @@ export default function App() {
       </header>
       <Routes>
         <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
+        <Route path="/categories/:slug" element={<CategoryPage onAddToCart={addToCart} />} />
         <Route path="/products/:slug" element={<ProductPage onAddToCart={addToCart} />} />
-        <Route path="/cart" element={<CartPage cartItems={cartItems} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onClear={emptyCart} />} />
+        <Route path="/payment/result" element={<PaymentResultPage cartError={cartError} onPaymentApproved={emptyCart} />} />
+        <Route path="/cart" element={<CartPage cartItems={cartItems} cartToken={cartToken} cartError={cartError} onCheckoutComplete={emptyCart} onUpdateQuantity={updateQuantity} onRemove={removeFromCart} onClear={emptyCart} />} />
       </Routes>
     </>
   )

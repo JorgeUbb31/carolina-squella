@@ -29,9 +29,33 @@ class CategorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Roller y Panel',
-                'slug' => 'roller-y-panel',
-                'description' => 'Soluciones modernas y funcionales para ventanas.',
+                'name' => 'Telas Españolas',
+                'slug' => 'telas-espanolas',
+                'description' => 'Colección de telas de origen español para proyectos a medida.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Tapicería',
+                'slug' => 'tapiceria',
+                'description' => 'Telas y materiales para tapicería de muebles y decoración.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Otras telas',
+                'slug' => 'otras-telas',
+                'description' => 'Telas especiales y alternativas para necesidades específicas.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Telas Chilenas',
+                'slug' => 'telas-chilenas',
+                'description' => 'Telas de origen chileno seleccionadas para el hogar.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Cortinas Roller',
+                'slug' => 'cortinas-roller',
+                'description' => 'Soluciones roller modernas y funcionales para ventanas.',
                 'is_active' => true,
             ],
             [

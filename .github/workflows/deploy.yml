@@ -1,0 +1,348 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    env:
+      APP_NAME: api-backend
+      STOREFRONT_NAME: carolina-storefront
+      APP_PORT: "8000"
+      STOREFRONT_PORT: "5173"
+      NODE_ENV: production
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: false
+
+      - name: Verificar herramientas
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          command -v php
+          command -v composer
+          command -v node
+          command -v npm
+          command -v pm2
+          command -v curl
+
+          php -v
+          composer --version
+          node --version
+          npm --version
+          pm2 --version
+
+          php -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);'
+
+      - name: Verificar extensiones PHP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          for extension in \
+            bcmath \
+            ctype \
+            curl \
+            dom \
+            fileinfo \
+            mbstring \
+            openssl \
+            pdo \
+            pdo_pgsql \
+            pgsql \
+            tokenizer \
+            xml
+          do
+            php -m | grep -i "^${extension}$" >/dev/null || {
+              echo "Falta la extensión PHP: ${extension}"
+              exit 1
+            }
+          done
+
+      - name: Crear archivos de entorno de producción
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          BACKEND_ENV_FILE="$HOME/backend.env"
+          STOREFRONT_ENV_FILE="$HOME/storefront.env"
+
+          test -r "$BACKEND_ENV_FILE" || {
+            echo "No existe o no se puede leer $BACKEND_ENV_FILE"
+            exit 1
+          }
+
+          test -r "$STOREFRONT_ENV_FILE" || {
+            echo "No existe o no se puede leer $STOREFRONT_ENV_FILE"
+            echo "Debe contener VITE_API_URL con la URL pública del backend"
+            exit 1
+          }
+
+          cp "$BACKEND_ENV_FILE" backend/.env
+          cp "$STOREFRONT_ENV_FILE" storefront/.env.production
+          chmod 600 backend/.env storefront/.env.production
+
+          grep -q '^DB_CONNECTION=pgsql$' backend/.env || {
+            echo "DB_CONNECTION debe ser pgsql"
+            exit 1
+          }
+
+          grep -q '^VITE_API_URL=' storefront/.env.production || {
+            echo "Falta VITE_API_URL en $STOREFRONT_ENV_FILE"
+            exit 1
+          }
+
+          echo "Archivos de entorno de producción preparados"
+
+      - name: Instalar dependencias PHP
+        working-directory: backend
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          composer validate --no-check-publish
+
+          rm -rf vendor
+
+          composer install \
+            --no-interaction \
+            --no-progress \
+            --prefer-dist \
+            --optimize-autoloader \
+            --no-dev
+
+      - name: Verificar instalación Composer
+        working-directory: backend
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          test -f vendor/autoload.php || {
+            echo "Composer no generó vendor/autoload.php"
+            exit 1
+          }
+
+          test -f vendor/symfony/error-handler/Error/FatalError.php || {
+            echo "La instalación Composer está incompleta: falta Symfony ErrorHandler/FatalError.php"
+            exit 1
+          }
+
+          echo "Dependencias PHP instaladas correctamente"
+
+      - name: Validar configuración PostgreSQL
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          grep -q '^DB_HOST=' backend/.env || {
+            echo "Falta DB_HOST"
+            exit 1
+          }
+
+          grep -q '^DB_PORT=' backend/.env || {
+            echo "Falta DB_PORT"
+            exit 1
+          }
+
+          grep -q '^DB_DATABASE=' backend/.env || {
+            echo "Falta DB_DATABASE"
+            exit 1
+          }
+
+          grep -q '^DB_USERNAME=' backend/.env || {
+            echo "Falta DB_USERNAME"
+            exit 1
+          }
+
+          echo "Configuración PostgreSQL validada"
+
+      - name: Preparar directorios Laravel
+        working-directory: backend
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          mkdir -p resources/views
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+
+          chmod -R ug+rwX storage bootstrap/cache
+
+      - name: Ejecutar migraciones Laravel
+        working-directory: backend
+        timeout-minutes: 3
+        run: |
+          set -e
+
+          php artisan migrate --force
+
+      - name: Preparar Laravel
+        working-directory: backend
+        timeout-minutes: 3
+        run: |
+          set -e
+
+          php artisan optimize:clear
+          php artisan config:cache
+          php artisan route:cache
+
+          if find resources/views \
+            -type f \
+            -not -name '.gitkeep' \
+            -print \
+            -quit | grep -q .
+          then
+            php artisan view:cache
+          else
+            echo "No hay vistas Blade; se omite view:cache"
+          fi
+
+      - name: Reiniciar backend Laravel con PM2
+        working-directory: backend
+        timeout-minutes: 2
+        run: |
+          set -e
+
+          test -f artisan || {
+            echo "No existe backend/artisan"
+            exit 1
+          }
+
+          pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
+
+          pm2 start artisan \
+            --name "$APP_NAME" \
+            --interpreter php \
+            -- serve \
+            --host 0.0.0.0 \
+            --port "$APP_PORT"
+
+          pm2 save
+          pm2 status "$APP_NAME"
+
+      - name: Instalar dependencias del storefront
+        working-directory: storefront
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          npm install \
+            --include=dev \
+            --no-audit \
+            --no-fund \
+            --prefer-offline
+
+          test -x node_modules/.bin/vite || {
+            echo "Vite no fue instalado correctamente"
+            exit 1
+          }
+
+      - name: Construir storefront
+        working-directory: storefront
+        timeout-minutes: 5
+        run: |
+          set -e
+
+          echo "API pública configurada desde storefront/.env.production"
+
+          npm run build
+
+          test -f dist/index.html || {
+            echo "No se generó storefront/dist/index.html"
+            exit 1
+          }
+
+          echo "Storefront compilado correctamente"
+
+      - name: Servir storefront con PM2
+        working-directory: storefront
+        timeout-minutes: 2
+        run: |
+          set -e
+
+          test -f dist/index.html || {
+            echo "No existe storefront/dist/index.html"
+            exit 1
+          }
+
+          pm2 delete "$STOREFRONT_NAME" >/dev/null 2>&1 || true
+
+          pm2 serve dist "$STOREFRONT_PORT" \
+            --name "$STOREFRONT_NAME" \
+            --spa
+
+          pm2 save
+          pm2 status "$STOREFRONT_NAME"
+
+      - name: Verificar backend por HTTP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          URL="http://127.0.0.1:${APP_PORT}/"
+          HTTP_CODE="000"
+
+          for attempt in $(seq 1 10); do
+            HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 5 \
+              "$URL" || true)"
+
+            echo "Backend - intento ${attempt}/10: HTTP ${HTTP_CODE}"
+
+            case "$HTTP_CODE" in
+              2??|3??|401|403|404)
+                echo "Backend Laravel está respondiendo correctamente"
+                break
+                ;;
+            esac
+
+            if [ "$attempt" -eq 10 ]; then
+              pm2 status "$APP_NAME" || true
+              pm2 logs "$APP_NAME" --lines 50 --nostream || true
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+      - name: Verificar storefront por HTTP
+        timeout-minutes: 1
+        run: |
+          set -e
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --max-time 10 \
+            "http://127.0.0.1:${STOREFRONT_PORT}/" \
+            -o /tmp/storefront.html
+
+          grep -q '<div id="root"></div>' /tmp/storefront.html || {
+            echo "El storefront no devolvió el index esperado"
+            cat /tmp/storefront.html
+            exit 1
+          }
+
+          echo "Storefront funcionando correctamente"

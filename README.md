@@ -89,6 +89,14 @@ npm install
 npm run dev
 ```
 
+Para producción, el workflow lee `~/storefront.env` en el servidor y lo copia a `storefront/.env.production`. Ese archivo debe contener la URL pública del backend:
+
+```env
+VITE_API_URL=http://tu-dominio-o-ip/api/v1
+```
+
+El backend usa `~/backend.env`, que se copia a `backend/.env`. Ambos archivos deben existir en el usuario del runner y no deben subirse al repositorio.
+
 **Storefront disponible en**: `http://localhost:5173`
 
 ## 🗄️ Base de Datos
