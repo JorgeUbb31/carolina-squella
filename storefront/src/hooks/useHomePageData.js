@@ -18,7 +18,7 @@ export default function useHomePageData() {
       })
       .catch((loadError) => {
         if (!active) return
-        console.error('No se pudo cargar la tienda:', loadError)
+        if (import.meta.env.DEV) console.error('No se pudo cargar la tienda:', loadError)
         setError(loadError.message)
       })
       .finally(() => {

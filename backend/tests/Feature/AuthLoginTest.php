@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Tests\TestCase;
 
 it('allows an admin to log in and receive a Sanctum token', function () {
@@ -38,7 +39,7 @@ it('rejects invalid login credentials', function () {
         ->assertJsonValidationErrors('email');
 });
 
-it('forbids non-admin users from logging in to the admin api', function () {
+it('returns a generic credentials error for non-admin users logging in to the admin api', function () {
     /** @var TestCase $this */
     User::factory()->create([
         'email' => 'customer@example.com',
@@ -49,7 +50,9 @@ it('forbids non-admin users from logging in to the admin api', function () {
     $this->postJson('/api/v1/auth/login', [
         'email' => 'customer@example.com',
         'password' => 'correct-password',
-    ])->assertForbidden();
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('email')
+        ->assertJsonPath('errors.email.0', 'Credenciales inválidas.');
 
     $this->assertDatabaseCount('personal_access_tokens', 0);
 });
@@ -91,4 +94,13 @@ it('seeds an admin account that can log in', function () {
         'email' => 'test@example.com',
         'is_admin' => true,
     ]);
+});
+
+it('does not seed the demo admin account in production', function () {
+    /** @var TestCase $this */
+    $this->app->detectEnvironment(fn () => 'production');
+
+    $this->app->make(DatabaseSeeder::class)->run();
+
+    $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
 });

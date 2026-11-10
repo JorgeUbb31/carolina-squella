@@ -3,36 +3,31 @@
 namespace App\Console\Commands;
 
 use App\Models\Order;
-use App\Services\Transbank\OrderStockReservation;
+use App\Services\Transbank\TransbankOrderReconciler;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class ExpireTransbankOrders extends Command
 {
     protected $signature = 'orders:expire-transbank';
 
-    protected $description = 'Release inventory reserved by expired Webpay Plus orders';
+    protected $description = 'Release inventory reserved by expired pending-payment orders';
 
-    public function handle(): int
+    public function handle(TransbankOrderReconciler $reconciler): int
     {
         Order::query()
-            ->where('payment_method', 'webpay_plus')
+            ->whereIn('payment_method', ['webpay_plus', 'bank_transfer'])
             ->where('status', 'pending_payment')
             ->whereNotNull('payment_expires_at')
             ->where('payment_expires_at', '<=', now())
-            ->select('id')
-            ->chunkById(100, function ($orders) {
+            ->select(['id', 'payment_method', 'transbank_token', 'payment_expires_at'])
+            ->chunkById(100, function ($orders) use ($reconciler) {
                 foreach ($orders as $order) {
-                    DB::transaction(function () use ($order) {
-                        $lockedOrder = Order::query()->lockForUpdate()->find($order->id);
-                        if (! $lockedOrder
-                            || $lockedOrder->status !== 'pending_payment'
-                            || $lockedOrder->payment_expires_at?->isFuture()) {
-                            return;
-                        }
+                    if ($order->payment_method === 'webpay_plus') {
+                        $reconciler->reconcile($order, expireIfUnapproved: true);
+                        continue;
+                    }
 
-                        app(OrderStockReservation::class)->expire($lockedOrder);
-                    });
+                    $reconciler->expireBankTransfer($order);
                 }
             });
 

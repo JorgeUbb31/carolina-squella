@@ -1,17 +1,15 @@
-import { useRef } from 'react'
-import { Link, Routes, Route, useLocation } from 'react-router-dom'
+import { Link, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ProductPage from './pages/ProductPage'
 import CartPage from './pages/CartPage'
 import CategoryPage from './pages/CategoryPage'
 import PaymentResultPage from './pages/PaymentResultPage'
 import ProductCatalogPage from './pages/ProductCatalogPage'
+import NotFoundPage from './pages/NotFoundPage'
 import useCart from './hooks/useCart'
 
 export default function App() {
-  const location = useLocation()
-  const isPaymentReturn = useRef(location.pathname === '/payment/result')
-  const cart = useCart(isPaymentReturn.current)
+  const cart = useCart()
 
   return (
     <>
@@ -26,6 +24,7 @@ export default function App() {
         <Route path="/products/:slug" element={<ProductPage onAddToCart={cart.add} />} />
         <Route path="/payment/result" element={<PaymentResultPage cartError={cart.error} onPaymentApproved={cart.clear} />} />
         <Route path="/cart" element={<CartPage cartItems={cart.items} cartToken={cart.token} cartError={cart.error} onUpdateQuantity={cart.updateQuantity} onRemove={cart.remove} onClear={cart.clear} />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   )

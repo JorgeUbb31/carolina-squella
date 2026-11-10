@@ -1,5 +1,6 @@
 import { formatPrice } from '../services/home.service'
 import { formatProductQuantity, formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
+import ProductImage from './ProductImage'
 
 export default function CartItemsList({ items, cartError, onUpdateQuantity, onRemove, onClear }) {
   return (
@@ -8,7 +9,7 @@ export default function CartItemsList({ items, cartError, onUpdateQuantity, onRe
       <button className="primary-btn" type="button" onClick={onClear}>Vaciar carrito</button>
       {items.map((item) => (
         <article className="cart-item" key={item.slug}>
-          <img src={item.image_url} alt={item.name} />
+          <ProductImage src={item.image_url} alt={item.name} />
           <div>
             <h2>{item.name}</h2>
             <p>{formatPrice(item.price)} por {getProductUnitLabel(item.unit_type)}</p>

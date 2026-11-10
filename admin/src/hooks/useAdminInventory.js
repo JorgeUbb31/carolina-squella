@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   clearToken,
   getCurrentUser,
@@ -7,9 +7,9 @@ import {
   logout,
 } from '../services/api'
 import {
-  deleteCategory,
   getAdminCategories,
   getCategories,
+  deleteCategory,
   saveCategory,
 } from '../services/categories.service'
 import {
@@ -19,6 +19,10 @@ import {
 } from '../services/products.service'
 import { INVENTORY_PAGE_SIZE, LOW_STOCK_THRESHOLD } from '../config/inventory'
 import { formatCurrency } from '../utils/formatters'
+
+function isAbortError(error) {
+  return error?.name === 'AbortError'
+}
 
 function getProductParams({ page, search, categoryId, lowStock }) {
   const params = { per_page: String(INVENTORY_PAGE_SIZE), page: String(page) }
@@ -45,8 +49,20 @@ export default function useAdminInventory() {
   const [modalOpen, setModalOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('products')
   const [adminCategories, setAdminCategories] = useState([])
+  const [adminCategoriesLoading, setAdminCategoriesLoading] = useState(false)
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const productRefreshController = useRef(null)
+  const categoryRefreshController = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      productRefreshController.current?.abort()
+      categoryRefreshController.current?.abort()
+    }
+  }, [])
 
   useEffect(() => {
     if (!getToken()) {
@@ -61,13 +77,8 @@ export default function useAdminInventory() {
 
   useEffect(() => {
     if (!user) return
-    getCategories().then(setCategories).catch((loadError) => setError(loadError.message))
-  }, [user])
-
-  useEffect(() => {
-    if (!user || activeSection !== 'categories') return
     refreshAdminCategories()
-  }, [user, activeSection])
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -101,18 +112,43 @@ export default function useAdminInventory() {
   }
 
   async function refreshAdminCategories() {
+    categoryRefreshController.current?.abort()
+    const controller = new AbortController()
+    categoryRefreshController.current = controller
+    setAdminCategoriesLoading(true)
     try {
       setError('')
-      setAdminCategories(await getAdminCategories())
+      const [adminResult, categoryResult] = await Promise.all([
+        getAdminCategories({ signal: controller.signal }),
+        getCategories({ signal: controller.signal }),
+      ])
+      setAdminCategories(adminResult)
+      setCategories(categoryResult)
     } catch (loadError) {
-      setError(loadError.message)
+      if (!isAbortError(loadError)) setError(loadError.message)
+    } finally {
+      if (categoryRefreshController.current === controller) {
+        setAdminCategoriesLoading(false)
+      }
     }
   }
 
-  async function refreshProducts() {
-    const result = await getProducts(getProductParams({ page, search, categoryId, lowStock }))
-    setProducts(result.data || [])
-    setPagination({ current_page: result.current_page, last_page: result.last_page, total: result.total })
+  async function refreshProducts({ page: requestedPage = page } = {}) {
+    productRefreshController.current?.abort()
+    const controller = new AbortController()
+    productRefreshController.current = controller
+    try {
+      const result = await getProducts(getProductParams({
+        page: requestedPage,
+        search,
+        categoryId,
+        lowStock,
+      }), { signal: controller.signal })
+      setProducts(result.data || [])
+      setPagination({ current_page: result.current_page, last_page: result.last_page, total: result.total })
+    } catch (refreshError) {
+      if (!isAbortError(refreshError)) throw refreshError
+    }
   }
 
   async function handleSaveProduct(productData, id) {
@@ -120,8 +156,16 @@ export default function useAdminInventory() {
     setModalOpen(false)
     setEditingProduct(null)
     setNotice(id ? 'Producto actualizado.' : 'Producto creado correctamente.')
-    setPage(1)
-    await refreshProducts()
+    setError('')
+    if (page === 1) {
+      try {
+        await refreshProducts({ page: 1 })
+      } catch (refreshError) {
+        setError(`Producto guardado, pero no se pudo actualizar la lista: ${refreshError.message}`)
+      }
+    } else {
+      setPage(1)
+    }
   }
 
   async function handleSaveCategory(categoryData, id) {
@@ -130,29 +174,54 @@ export default function useAdminInventory() {
     setEditingCategory(null)
     setNotice(id ? 'Categoría actualizada.' : 'Categoría creada correctamente.')
     await refreshAdminCategories()
-    setCategories(await getCategories())
   }
 
-  async function handleDeleteCategory(category) {
-    if (!window.confirm(`¿Eliminar “${category.name}”?`)) return
-    try {
-      await deleteCategory(category.id)
-      setNotice('Categoría eliminada.')
-      await refreshAdminCategories()
-      setCategories(await getCategories())
-    } catch (deleteError) {
-      setError(deleteError.message)
-    }
+  function requestDeleteCategory(category) {
+    setDeleteConfirmation({
+      type: 'category',
+      item: category,
+      title: 'Eliminar categoría',
+      message: `¿Eliminar “${category.name}”?`,
+    })
   }
 
-  async function handleDeleteProduct(product) {
-    if (!window.confirm(`¿Eliminar “${product.name}”? Esta acción no se puede deshacer.`)) return
+  function requestDeleteProduct(product) {
+    setDeleteConfirmation({
+      type: 'product',
+      item: product,
+      title: 'Eliminar producto',
+      message: `¿Eliminar “${product.name}”? Esta acción no se puede deshacer.`,
+    })
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteConfirmation || deleteBusy) return
+    setDeleteBusy(true)
+    setError('')
     try {
-      await deleteProduct(product.id)
-      setNotice('Producto eliminado.')
-      await refreshProducts()
+      if (deleteConfirmation.type === 'category') {
+        await deleteCategory(deleteConfirmation.item.id)
+        setNotice('Categoría eliminada.')
+        setDeleteConfirmation(null)
+        await refreshAdminCategories()
+      } else {
+        await deleteProduct(deleteConfirmation.item.id)
+        setNotice('Producto eliminado.')
+        setDeleteConfirmation(null)
+        if (products.length === 1 && page > 1) {
+          setPage((current) => current - 1)
+        } else {
+          try {
+            await refreshProducts()
+          } catch (refreshError) {
+            setError(`Producto eliminado, pero no se pudo actualizar la lista: ${refreshError.message}`)
+          }
+        }
+      }
     } catch (deleteError) {
-      setError(deleteError.message)
+      if (!isAbortError(deleteError)) setError(deleteError.message)
+    } finally {
+      setDeleteBusy(false)
     }
   }
 
@@ -183,6 +252,7 @@ export default function useAdminInventory() {
     setActiveSection,
     pagination,
     adminCategories,
+    adminCategoriesLoading,
     onCreateProduct: () => openProductModal(),
     onCreateCategory: () => openCategoryModal(),
     lowStock,
@@ -201,10 +271,10 @@ export default function useAdminInventory() {
     products,
     money: formatCurrency,
     onEditProduct: openProductModal,
-    onDeleteProduct: handleDeleteProduct,
+    onDeleteProduct: requestDeleteProduct,
     page,
     onEditCategory: openCategoryModal,
-    onDeleteCategory: handleDeleteCategory,
+    onDeleteCategory: requestDeleteCategory,
   }
 
   return {
@@ -221,5 +291,11 @@ export default function useAdminInventory() {
     editingCategory,
     closeCategoryModal,
     handleSaveCategory,
+    deleteConfirmation,
+    deleteBusy,
+    handleConfirmDelete,
+    closeDeleteConfirmation: () => {
+      if (!deleteBusy) setDeleteConfirmation(null)
+    },
   }
 }

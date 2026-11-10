@@ -32,6 +32,7 @@ export default function CategoryModal({ category, onClose, onSave }) {
       eyebrow="TIPO DE PRODUCTO"
       title={editing ? 'Editar categoría' : 'Nueva categoría'}
       onClose={onClose}
+      busy={busy}
     >
         <form onSubmit={handleSubmit}>
           <div className="form-grid category-form-grid">
@@ -40,7 +41,7 @@ export default function CategoryModal({ category, onClose, onSave }) {
           </div>
           <label className="check-option category-active-option"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} /><span className="check-box"><Check size={13} /></span>Categoría activa</label>
           {error && <p className="form-error"><AlertCircle size={16} />{error}</p>}
-          <footer className="modal-actions"><button className="button button-quiet" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy && <LoaderCircle className="spin" size={17} />}{editing ? 'Guardar cambios' : 'Crear categoría'}</button></footer>
+          <footer className="modal-actions"><button className="button button-quiet" type="button" onClick={onClose} disabled={busy}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy && <LoaderCircle className="spin" size={17} />}{editing ? 'Guardar cambios' : 'Crear categoría'}</button></footer>
         </form>
     </Modal>
   )

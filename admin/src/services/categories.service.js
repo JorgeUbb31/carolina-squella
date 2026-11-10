@@ -1,11 +1,11 @@
 import { request } from './api'
 
-export function getCategories() {
-  return request('/categories')
+export function getCategories(options = {}) {
+  return request('/categories', options)
 }
 
-export function getAdminCategories() {
-  return request('/admin/categories')
+export function getAdminCategories(options = {}) {
+  return request('/admin/categories', options)
 }
 
 export function saveCategory(category, id) {

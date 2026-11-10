@@ -23,6 +23,18 @@ class SdkTransbankGateway implements TransbankGateway
     {
         $response = $this->transaction()->commit($token);
 
+        return $this->toArray($response);
+    }
+
+    public function status(string $token): array
+    {
+        $response = $this->transaction()->status($token);
+
+        return $this->toArray($response);
+    }
+
+    private function toArray(object $response): array
+    {
         return [
             'status' => $response->status,
             'response_code' => $response->responseCode,
@@ -38,6 +50,10 @@ class SdkTransbankGateway implements TransbankGateway
         $environment = config('services.transbank.environment');
         $commerceCode = config('services.transbank.commerce_code');
         $apiKey = config('services.transbank.api_key');
+
+        if (app()->environment('production') && $environment === 'integration') {
+            throw new RuntimeException('TRANSBANK_ENVIRONMENT=integration no está permitido en producción.');
+        }
 
         if ($environment === 'integration') {
             return Transaction::buildForIntegration(

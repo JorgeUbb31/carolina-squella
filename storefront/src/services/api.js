@@ -50,10 +50,8 @@ export const saveRemoteCart = (token, items) => request('/cart', {
     items: items.map(({ slug, quantity }) => ({ slug, quantity }))
   })
 })
-export const clearRemoteCart = (token) => request('/cart', {
-  method: 'DELETE',
-  body: JSON.stringify({ cart_token: token })
-})
+export const clearRemoteCart = (token) =>
+  request(`/cart?cart_token=${encodeURIComponent(token)}`, { method: 'DELETE' })
 export const submitOrder = (order) => request('/orders', {
   method: 'POST',
   body: JSON.stringify(order)

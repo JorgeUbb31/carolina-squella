@@ -35,8 +35,10 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const editing = Boolean(product?.id)
+  const originalCategory = categories.find((category) => String(category.id) === String(product?.category_id))
   const selectedCategory = categories.find((category) => String(category.id) === String(form.category_id))
   const soldByMeter = isSoldByMeterCategory(selectedCategory)
+  const wasSoldByMeter = isSoldByMeterCategory(originalCategory)
   const fabricWidths = form.width_cm && !FABRIC_WIDTHS.includes(Number(form.width_cm))
     ? [...FABRIC_WIDTHS, Number(form.width_cm)].sort((left, right) => left - right)
     : FABRIC_WIDTHS
@@ -57,8 +59,12 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
       stock: Number(form.stock),
       width_cm: soldByMeter
         ? form.width_cm ? Number(form.width_cm) : null
-        : product?.width_cm ?? null,
-      height_cm: soldByMeter ? null : product?.height_cm ?? null,
+        : wasSoldByMeter
+          ? null
+          : form.width_cm ? Number(form.width_cm) : null,
+      height_cm: soldByMeter
+        ? null
+        : form.height_cm ? Number(form.height_cm) : null,
       unit_type: soldByMeter
         ? 'metro'
         : String(product?.category_id) === String(form.category_id)
@@ -80,6 +86,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
       eyebrow="FICHA DE PRODUCTO"
       title={editing ? 'Editar producto' : 'Nuevo producto'}
       onClose={onClose}
+      busy={busy}
     >
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
@@ -91,7 +98,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                 setForm((current) => ({
                   ...current,
                   category_id: categoryId,
-                  width_cm: isSoldByMeterCategory(category) && !soldByMeter ? '' : current.width_cm,
+                  width_cm: soldByMeter !== isSoldByMeterCategory(category) ? '' : current.width_cm,
                 }))
               }}>
                 <option value="">Selecciona un tipo</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
@@ -99,6 +106,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
             </label>
             <label className="field">{soldByMeter ? 'Precio por metro (CLP)' : 'Precio (CLP)'}<input type="number" min="0" step="1" value={form.price} onChange={(event) => change('price', event.target.value)} required /></label>
             <label className="field">{soldByMeter ? 'Stock disponible (metros)' : 'Stock disponible'}<input type="number" min="0" step="1" value={form.stock} onChange={(event) => change('stock', event.target.value)} required /></label>
+            <label className="field">Material<input value={form.material || ''} onChange={(event) => change('material', event.target.value)} maxLength="255" /></label>
             <label className="field">Color<input value={form.color || ''} onChange={(event) => change('color', event.target.value)} /></label>
             <label className="field">Diseño / patrón<input value={form.pattern || ''} onChange={(event) => change('pattern', event.target.value)} /></label>
             {soldByMeter && (
@@ -107,6 +115,9 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
                   <option value="">Selecciona ancho</option>{fabricWidths.map((width) => <option key={width} value={width}>{formatFabricWidth(width)} ({width} cm)</option>)}
                 </select><ChevronDown size={16} /></span>
               </label>
+            )}
+            {!soldByMeter && (
+              <label className="field">Alto (cm)<input type="number" min="1" step="1" value={form.height_cm || ''} onChange={(event) => change('height_cm', event.target.value)} /></label>
             )}
             <label className="field field-wide">URL de imagen<input type="url" value={form.image_url || ''} onChange={(event) => change('image_url', event.target.value)} /></label>
             <label className="field field-wide">Descripción<textarea rows="3" value={form.description || ''} onChange={(event) => change('description', event.target.value)} /></label>
@@ -117,7 +128,7 @@ export default function ProductModal({ product, categories, onClose, onSave }) {
             ))}
           </div>
           {error && <p className="form-error"><AlertCircle size={16} />{error}</p>}
-          <footer className="modal-actions"><button className="button button-quiet" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy && <LoaderCircle className="spin" size={17} />}{editing ? 'Guardar cambios' : 'Crear producto'}</button></footer>
+          <footer className="modal-actions"><button className="button button-quiet" type="button" onClick={onClose} disabled={busy}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy && <LoaderCircle className="spin" size={17} />}{editing ? 'Guardar cambios' : 'Crear producto'}</button></footer>
         </form>
     </Modal>
   )

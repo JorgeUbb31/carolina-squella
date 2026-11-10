@@ -37,6 +37,14 @@ it('allows an admin to create, view, update, and delete products', function () {
         ->assertJsonPath('stock', 8);
 
     $productId = $created->json('id');
+    $this->assertDatabaseHas('stock_movements', [
+        'product_id' => $productId,
+        'user_id' => $admin->id,
+        'quantity_change' => 8,
+        'stock_before' => 0,
+        'stock_after' => 8,
+        'reason' => 'initial',
+    ]);
 
     $this->withToken($token)->getJson('/api/v1/admin/products/'.$productId)
         ->assertOk()
@@ -52,6 +60,14 @@ it('allows an admin to create, view, update, and delete products', function () {
     ])->assertOk()
         ->assertJsonPath('name', 'Lino premium natural')
         ->assertJsonPath('stock', 12);
+    $this->assertDatabaseHas('stock_movements', [
+        'product_id' => $productId,
+        'user_id' => $admin->id,
+        'quantity_change' => 4,
+        'stock_before' => 8,
+        'stock_after' => 12,
+        'reason' => 'manual_adjustment',
+    ]);
 
     $this->withToken($token)->deleteJson('/api/v1/admin/products/'.$productId)
         ->assertNoContent();

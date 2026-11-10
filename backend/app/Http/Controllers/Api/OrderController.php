@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Services\Transbank\OrderStockReservation;
+use App\Services\Transbank\TransbankPaymentReviewNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class OrderController extends Controller
     public function __construct(
         private readonly TransbankGateway $transbank,
         private readonly OrderStockReservation $stockReservation,
+        private readonly TransbankPaymentReviewNotifier $paymentReviewNotifier,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -49,6 +51,15 @@ class OrderController extends Controller
                 throw ValidationException::withMessages(['cart' => ['El carrito está vacío.']]);
             }
 
+            if (Order::query()
+                ->where('cart_token', $cart->token)
+                ->where('status', 'pending_payment')
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'cart' => ['Ya hay un pago en curso para este carrito.'],
+                ]);
+            }
+
             $cartItems = $cart->items()->with('product')->get();
             if ($cartItems->isEmpty()) {
                 throw ValidationException::withMessages(['cart' => ['El carrito está vacío.']]);
@@ -66,15 +77,20 @@ class OrderController extends Controller
             });
 
             $subtotal = $products->sum(fn ($pair) => (float) $pair[1]->price * $pair[0]->quantity);
+            $expirationMinutes = $paymentMethod === 'webpay_plus'
+                ? config('services.transbank.payment_expiration_minutes')
+                : (config('services.transbank.bank_transfer_payment_expiration_hours') * 60);
+
             $order = Order::query()->create([
                 ...collect($data)->except('cart_token')->all(),
                 'order_number' => 'CS-'.Str::upper(Str::random(10)),
                 'status' => 'pending_payment',
-                'cart_token' => $paymentMethod === 'webpay_plus' ? $data['cart_token'] : null,
+                'cart_token' => $data['cart_token'],
                 'subtotal' => $subtotal,
                 'shipping_total' => 0,
                 'total' => $subtotal,
                 'payment_method' => $paymentMethod,
+                'payment_expires_at' => now()->addMinutes((int) $expirationMinutes),
             ]);
 
             foreach ($products as [$item, $product]) {
@@ -87,7 +103,17 @@ class OrderController extends Controller
                     'quantity' => $item->quantity,
                     'line_total' => $lineTotal,
                 ]);
+
+                $stockBefore = (int) $product->stock;
                 $product->decrement('stock', $item->quantity);
+                $stockAfter = $stockBefore - (int) $item->quantity;
+                $product->stockMovements()->create([
+                    'product_id' => $product->id,
+                    'quantity_change' => -((int) $item->quantity),
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockAfter,
+                    'reason' => 'order_reservation',
+                ]);
             }
 
             if ($paymentMethod === 'bank_transfer') {
@@ -117,93 +143,49 @@ class OrderController extends Controller
             return $this->paymentResultRedirect('failed');
         }
 
+        $order = Order::query()->where('transbank_token', $token)->first();
+
+        if (! $order) {
+            return $this->paymentResultRedirect('failed');
+        }
+
+        if ($order->status === 'paid') {
+            return $this->paymentResultRedirect('approved', $order->order_number);
+        }
+
+        if ($order->status !== 'pending_payment') {
+            $resultStatus = match ($order->status) {
+                'payment_cancelled' => 'cancelled',
+                'payment_expired' => 'expired',
+                'payment_failed' => 'failed',
+                'payment_review' => 'review',
+                default => 'failed',
+            };
+
+            return $this->paymentResultRedirect($resultStatus, $order->order_number);
+        }
+
         try {
-            $result = DB::transaction(function () use ($token) {
-                $order = Order::query()
-                    ->where('transbank_token', $token)
-                    ->lockForUpdate()
-                    ->first();
+            $payment = $this->transbank->commit($token);
+        } catch (TransactionCommitException $exception) {
+            if ($exception->getHttpCode() !== 422
+                || ! str_contains(
+                    strtolower($exception->getTransbankErrorMessage() ?? ''),
+                    'finished state: aborted',
+                )) {
+                throw $exception;
+            }
 
-                if (! $order) {
-                    return ['status' => 'failed'];
+            return DB::transaction(function () use ($order) {
+                $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+                if (! $lockedOrder || $lockedOrder->status !== 'pending_payment') {
+                    return $this->paymentResultRedirect('cancelled', $order->order_number);
                 }
 
-                if ($order->status === 'paid') {
-                    return ['status' => 'approved', 'order_number' => $order->order_number];
-                }
+                $this->stockReservation->release($lockedOrder);
+                $lockedOrder->update(['status' => 'payment_cancelled']);
 
-                if ($order->status !== 'pending_payment') {
-                    $resultStatus = match ($order->status) {
-                        'payment_cancelled' => 'cancelled',
-                        'payment_expired' => 'expired',
-                        'payment_failed' => 'failed',
-                        'payment_review' => 'review',
-                        default => 'failed',
-                    };
-
-                    return ['status' => $resultStatus, 'order_number' => $order->order_number];
-                }
-
-                if ($order->payment_expires_at?->isPast()) {
-                    $this->stockReservation->expire($order);
-
-                    return ['status' => 'expired', 'order_number' => $order->order_number];
-                }
-
-                try {
-                    $payment = $this->transbank->commit($token);
-                } catch (TransactionCommitException $exception) {
-                    if ($exception->getHttpCode() !== 422
-                        || ! str_contains(
-                            strtolower($exception->getTransbankErrorMessage() ?? ''),
-                            'finished state: aborted',
-                        )) {
-                        throw $exception;
-                    }
-
-                    $this->stockReservation->release($order);
-                    $order->update(['status' => 'payment_cancelled']);
-
-                    return ['status' => 'cancelled', 'order_number' => $order->order_number];
-                }
-
-                $authorized = in_array($payment['status'] ?? null, ['AUTHORIZED', 'CAPTURED'], true)
-                    && ($payment['response_code'] ?? null) === 0;
-                $matchesOrder = (int) round((float) ($payment['amount'] ?? 0)) === (int) round((float) $order->total)
-                    && ($payment['buy_order'] ?? null) === $order->transbank_buy_order
-                    && ($payment['session_id'] ?? null) === $order->transbank_session_id;
-
-                if (! $authorized) {
-                    $this->stockReservation->release($order);
-                    $order->update(['status' => 'payment_failed']);
-
-                    return ['status' => 'failed', 'order_number' => $order->order_number];
-                }
-
-                if (! $matchesOrder) {
-                    Log::critical('Una transacción Webpay aprobada no coincide con los datos del pedido.', [
-                        'order_id' => $order->id,
-                        'transbank_buy_order' => $payment['buy_order'] ?? null,
-                        'transbank_session_id' => $payment['session_id'] ?? null,
-                        'transbank_amount' => $payment['amount'] ?? null,
-                    ]);
-                    $order->update(['status' => 'payment_review']);
-
-                    return ['status' => 'review', 'order_number' => $order->order_number];
-                }
-
-                $order->update([
-                    'status' => 'paid',
-                    'paid_at' => now(),
-                    'transbank_authorization_code' => $payment['authorization_code'] ?? null,
-                ]);
-                Cart::query()
-                    ->where('token', $order->cart_token)
-                    ->first()
-                    ?->items()
-                    ->delete();
-
-                return ['status' => 'approved', 'order_number' => $order->order_number];
+                return $this->paymentResultRedirect('cancelled', $lockedOrder->order_number);
             });
         } catch (Throwable $exception) {
             Log::error('No se pudo confirmar una transacción Webpay Plus.', [
@@ -215,6 +197,70 @@ class OrderController extends Controller
             return $this->paymentResultRedirect('pending', $orderNumber);
         }
 
+        $result = DB::transaction(function () use ($payment, $token) {
+            $lockedOrder = Order::query()
+                ->where('transbank_token', $token)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $lockedOrder) {
+                return ['status' => 'failed'];
+            }
+
+            if ($lockedOrder->status === 'paid') {
+                return ['status' => 'approved', 'order_number' => $lockedOrder->order_number];
+            }
+
+            if ($lockedOrder->status !== 'pending_payment') {
+                $resultStatus = match ($lockedOrder->status) {
+                    'payment_cancelled' => 'cancelled',
+                    'payment_expired' => 'expired',
+                    'payment_failed' => 'failed',
+                    'payment_review' => 'review',
+                    default => 'failed',
+                };
+
+                return ['status' => $resultStatus, 'order_number' => $lockedOrder->order_number];
+            }
+
+            $authorized = in_array($payment['status'] ?? null, ['AUTHORIZED', 'CAPTURED'], true)
+                && ($payment['response_code'] ?? null) === 0;
+
+            if ($authorized) {
+                if (! $this->stockReservation->confirm($lockedOrder, $payment)) {
+                    Log::critical('Una transacción Webpay aprobada no coincide con los datos del pedido.', [
+                        'order_id' => $lockedOrder->id,
+                        'transbank_buy_order' => $payment['buy_order'] ?? null,
+                        'transbank_session_id' => $payment['session_id'] ?? null,
+                        'transbank_amount' => $payment['amount'] ?? null,
+                    ]);
+                    $lockedOrder->update(['status' => 'payment_review']);
+                    $this->paymentReviewNotifier->notify($lockedOrder, $payment);
+
+                    return ['status' => 'review', 'order_number' => $lockedOrder->order_number];
+                }
+
+                return ['status' => 'approved', 'order_number' => $lockedOrder->order_number];
+            }
+
+            if ($lockedOrder->payment_expires_at?->isPast()) {
+                $this->stockReservation->expire($lockedOrder);
+
+                return ['status' => 'expired', 'order_number' => $lockedOrder->order_number];
+            }
+
+            $hasDefinitiveStatus = is_string($payment['status'] ?? null)
+                && ($payment['response_code'] ?? null) !== null;
+            if ($hasDefinitiveStatus) {
+                $this->stockReservation->release($lockedOrder);
+                $lockedOrder->update(['status' => 'payment_failed']);
+
+                return ['status' => 'failed', 'order_number' => $lockedOrder->order_number];
+            }
+
+            return ['status' => 'pending', 'order_number' => $lockedOrder->order_number];
+        });
+
         return $this->paymentResultRedirect($result['status'], $result['order_number'] ?? null);
     }
 
@@ -224,7 +270,6 @@ class OrderController extends Controller
 
         return response()->json([
             'status' => $order->status,
-            'cart_token' => $order->cart_token,
         ]);
     }
 
@@ -247,6 +292,10 @@ class OrderController extends Controller
 
             DB::transaction(function () use ($order, $sessionId, $expiresAt, $payment) {
                 $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+                if ($lockedOrder->status !== 'pending_payment') {
+                    return;
+                }
+
                 $lockedOrder->update([
                     'transbank_token' => $payment['token'],
                     'transbank_buy_order' => $order->order_number,
@@ -257,6 +306,10 @@ class OrderController extends Controller
         } catch (Throwable $exception) {
             DB::transaction(function () use ($order) {
                 $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+                if ($lockedOrder->status !== 'pending_payment') {
+                    return;
+                }
+
                 $this->stockReservation->release($lockedOrder);
                 $lockedOrder->update(['status' => 'payment_failed']);
             });

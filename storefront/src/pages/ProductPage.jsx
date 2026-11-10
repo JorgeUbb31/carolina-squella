@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import useProductDetails from '../hooks/useProductDetails'
 import { formatPrice } from '../services/home.service'
 import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
+import ProductImage from '../components/ProductImage'
 
 export default function ProductPage({ onAddToCart }) {
   const { slug } = useParams()
@@ -21,7 +22,7 @@ export default function ProductPage({ onAddToCart }) {
     <main className="product-detail container page-enter">
       <Link className="back-link" to="/">Volver a la tienda</Link>
       <div className="product-detail-grid">
-        <img src={product.image_url} alt={product.name} />
+        <ProductImage src={product.image_url} alt={product.name} />
         <section>
           <span className="badge">{product.category?.name || 'Textil'}</span>
           <h1>{product.name}</h1>

@@ -8,8 +8,7 @@ export async function loadHomeData() {
 
   return {
     categories,
-    products,
-    heroProduct: products[0] ?? null
+    products
   }
 }
 

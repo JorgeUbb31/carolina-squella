@@ -24,7 +24,9 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => ['Credenciales inválidas.']]);
         }
 
-        abort_unless($user->is_admin, 403, 'No tienes permisos para administrar el inventario.');
+        if (! $user->is_admin) {
+            throw ValidationException::withMessages(['email' => ['Credenciales inválidas.']]);
+        }
 
         return response()->json([
             'token' => $user->createToken('stock-management')->plainTextToken,
