@@ -1,5 +1,6 @@
 const CART_STORAGE_KEY = 'carolina-squella-cart'
 const CART_TOKEN_KEY = 'carolina-squella-cart-token'
+const PAYMENT_CART_STORAGE_PREFIX = 'carolina-squella-payment-cart-'
 
 function createCartToken() {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -29,6 +30,18 @@ export function getCartToken() {
     localStorage.setItem(CART_TOKEN_KEY, token)
   }
   return token
+}
+
+export function savePaymentCartToken(orderNumber, cartToken) {
+  sessionStorage.setItem(`${PAYMENT_CART_STORAGE_PREFIX}${orderNumber}`, cartToken)
+}
+
+export function getPaymentCartToken(orderNumber) {
+  return sessionStorage.getItem(`${PAYMENT_CART_STORAGE_PREFIX}${orderNumber}`)
+}
+
+export function removePaymentCartToken(orderNumber) {
+  sessionStorage.removeItem(`${PAYMENT_CART_STORAGE_PREFIX}${orderNumber}`)
 }
 
 function isCartItem(item) {

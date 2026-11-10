@@ -67,9 +67,13 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ## Webpay Plus
 
-Webpay Plus is configured for Transbank's integration environment by default. Copy the Transbank settings from `.env.example` into `.env`; integration credentials may be left blank to use the SDK's test credentials. For production, set `TRANSBANK_ENVIRONMENT=production` and provide the commerce code and API key issued by Transbank. Do not commit credentials.
+The `.env.example` explicitly selects Transbank's integration environment for local development; the application fallback is `production`, which requires the commerce code and API key issued by Transbank. Integration mode is rejected in production. Do not commit credentials.
 
-The backend return URL is generated from `APP_URL`, so it must be reachable over public HTTPS for Transbank callbacks. Set `STOREFRONT_URL` to the public storefront origin. Pending payment inventory reservations expire after 30 minutes; run Laravel's scheduler continuously (`php artisan schedule:work`, or configure the host scheduler to run `php artisan schedule:run` every minute) so the expiry task releases them.
+The backend return URL is generated from `APP_URL`, so it must be reachable over public HTTPS for Transbank callbacks. Set `STOREFRONT_URL` to the public storefront origin. Pending Webpay inventory reservations expire after 30 minutes and bank-transfer reservations after 72 hours. The scheduler reconciles pending Webpay Plus payments with Transbank every five minutes and expires eligible orders; if Transbank cannot be reached, the Webpay order and stock reservation remain pending for a later retry. An `INITIALIZED` payment remains reserved until Transbank resolves it, with a two-hour hard cap to prevent inventory from being held indefinitely. In production, run Laravel's scheduler continuously (`php artisan schedule:work`, or configure the host scheduler to run `php artisan schedule:run` every minute).
+
+Set `PAYMENT_REVIEW_ALERT_EMAIL` to an administrator email address to receive a queued notification when Transbank approves a payment but its details do not match the order. Configure a real mail transport and keep a persistent queue worker running in production (for example, supervised `php artisan queue:work`) so the alert is delivered.
+
+The demo admin account (`test@example.com`) is seeded only in `local` and `testing` environments; production seeding does not create it.
 
 ## Quote requests
 

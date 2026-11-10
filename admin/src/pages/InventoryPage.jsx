@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -15,7 +16,29 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { formatFabricWidth, INVENTORY_PAGE_SIZE } from '../config/inventory'
+import { formatFabricWidth, INVENTORY_PAGE_SIZE, LOW_STOCK_THRESHOLD } from '../config/inventory'
+
+function getStockClass(value) {
+  const stock = Number(value ?? 0)
+  if (stock === 0) return 'stock-empty'
+  return stock <= LOW_STOCK_THRESHOLD ? 'stock-low' : 'stock-ok'
+}
+
+function ProductThumbnail({ imageUrl, name }) {
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [imageUrl])
+
+  return (
+    <div className="product-thumbnail">
+      {imageUrl && !imageFailed
+        ? <img src={imageUrl} alt="" onError={() => setImageFailed(true)} />
+        : <span>{(name || 'P').trim().slice(0, 1).toUpperCase()}</span>}
+    </div>
+  )
+}
 
 export default function InventoryPage({
   user,
@@ -24,6 +47,7 @@ export default function InventoryPage({
   setActiveSection,
   pagination,
   adminCategories,
+  adminCategoriesLoading,
   onCreateProduct,
   onCreateCategory,
   lowStock,
@@ -47,12 +71,38 @@ export default function InventoryPage({
   onEditCategory,
   onDeleteCategory,
 }) {
+  const searchInputRef = useRef(null)
+  const searchShortcut = navigator.userAgent.includes('Mac') ? '⌘ K' : 'Ctrl K'
+
+  useEffect(() => {
+    if (!notice) return undefined
+    const timeout = window.setTimeout(() => setNotice(''), 4000)
+    return () => window.clearTimeout(timeout)
+  }, [notice, setNotice])
+
+  useEffect(() => {
+    setNotice('')
+  }, [activeSection, setNotice])
+
+  useEffect(() => {
+    function handleSearchShortcut(event) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        if (document.activeElement?.closest('[aria-modal="true"]')) return
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleSearchShortcut)
+    return () => window.removeEventListener('keydown', handleSearchShortcut)
+  }, [])
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <a className="sidebar-brand" href="#inventory"><span className="brand-mark">CS</span><span>CAROLINA<br /><b>SQUELLA</b></span></a>
         <button className={`side-link ${activeSection === 'products' ? 'side-link-active' : ''}`} type="button" onClick={() => setActiveSection('products')}><Boxes size={18} /><span>Inventario</span><span className="side-count">{pagination.total}</span></button>
-        <button className={`side-link ${activeSection === 'categories' ? 'side-link-active' : ''}`} type="button" onClick={() => setActiveSection('categories')}><Tags size={18} /><span>Categorías</span><span className="side-count">{adminCategories.length}</span></button>
+        <button className={`side-link ${activeSection === 'categories' ? 'side-link-active' : ''}`} type="button" onClick={() => setActiveSection('categories')}><Tags size={18} /><span>Categorías</span><span className="side-count">{adminCategoriesLoading ? <LoaderCircle className="spin" size={13} aria-label="Cargando categorías" /> : adminCategories.length}</span></button>
         <div className="sidebar-bottom"><div className="user-chip"><span className="user-avatar">{(user.name || user.email || 'A').slice(0, 1).toUpperCase()}</span><span className="user-info"><b>{user.name || 'Administración'}</b><small>{user.email}</small></span></div><button className="logout-button" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><DoorOpen size={18} /></button></div>
       </aside>
 
@@ -63,7 +113,7 @@ export default function InventoryPage({
           {activeSection === 'products' ? <section className="inventory-section">
             <div className="section-heading"><div><h2>Productos</h2><span>{pagination.total} registros</span></div><button className={`filter-toggle ${lowStock ? 'filter-toggle-on' : ''}`} onClick={() => { setLowStock((current) => !current); setPage(1) }}><SlidersHorizontal size={16} />{lowStock ? 'Ver todos' : 'Stock bajo'}</button></div>
             <div className="toolbar">
-              <label className="search-control"><Search size={17} /><input placeholder="Buscar por nombre…" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} /><kbd>⌘ K</kbd></label>
+              <label className="search-control"><Search size={17} /><input ref={searchInputRef} placeholder="Buscar por nombre…" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} /><kbd>{searchShortcut}</kbd></label>
               <label className="category-control"><span>Categoría</span><span className="select-wrap"><select value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setPage(1) }}><option value="">Todas</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select><ChevronDown size={15} /></span></label>
             </div>
 
@@ -77,10 +127,10 @@ export default function InventoryPage({
                   {loading && <tr><td className="table-state" colSpan="6"><LoaderCircle className="spin" size={20} />Cargando productos…</td></tr>}
                   {!loading && products.map((product) => (
                     <tr key={product.id}>
-                      <td><div className="product-cell"><div className="product-thumbnail">{product.image_url ? <img src={product.image_url} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span>{(product.name || 'P').slice(0, 1)}</span>}</div><div><strong>{product.name}</strong><small>{product.material || 'Sin material'}{product.color ? ` · ${product.color}` : ''}{product.unit_type === 'metro' && product.width_cm ? ` · Ancho ${formatFabricWidth(product.width_cm)}` : ''}</small></div></div></td>
+                      <td><div className="product-cell"><ProductThumbnail imageUrl={product.image_url} name={product.name} /><div><strong>{product.name}</strong><small>{product.material || 'Sin material'}{product.color ? ` · ${product.color}` : ''}{product.unit_type === 'metro' && product.width_cm ? ` · Ancho ${formatFabricWidth(product.width_cm)}` : ''}</small></div></div></td>
                       <td className="category-cell">{product.category?.name || 'Sin categoría'}</td>
                       <td className="price-cell">{money(Number(product.price || 0))}</td>
-                      <td><span className={`stock-pill ${product.stock === 0 ? 'stock-empty' : product.stock <= 5 ? 'stock-low' : 'stock-ok'}`}><i />{product.stock} <small>{product.unit_type === 'metro' ? 'm' : product.unit_type || 'unid.'}</small></span></td>
+                      <td><span className={`stock-pill ${getStockClass(product.stock)}`}><i />{Number(product.stock ?? 0)} <small>{product.unit_type === 'metro' ? 'm' : product.unit_type || 'unid.'}</small></span></td>
                       <td><span className={`status-label ${product.is_active ? 'status-active' : 'status-inactive'}`}>{product.is_active ? 'Activo' : 'Inactivo'}</span></td>
                       <td><div className="row-actions"><button className="icon-button" type="button" title="Editar producto" aria-label={`Editar ${product.name}`} onClick={() => onEditProduct(product)}><Pencil size={16} /></button><button className="icon-button icon-danger" type="button" title="Eliminar producto" aria-label={`Eliminar ${product.name}`} onClick={() => onDeleteProduct(product)}><Trash2 size={16} /></button></div></td>
                     </tr>

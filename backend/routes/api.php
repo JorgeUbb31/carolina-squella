@@ -20,7 +20,8 @@ Route::prefix('v1')->group(function () {
     Route::delete('cart', [CartController::class, 'destroy']);
     Route::post('orders', [OrderController::class, 'store']);
     Route::post('quote-requests', [QuoteRequestController::class, 'store'])->middleware('throttle:5,1');
-    Route::get('orders/{order:order_number}/payment-status', [OrderController::class, 'paymentStatus']);
+    Route::get('orders/{order:order_number}/payment-status', [OrderController::class, 'paymentStatus'])
+        ->middleware('throttle:10,1');
     Route::match(['get', 'post'], 'payments/transbank/return', [OrderController::class, 'transbankReturn'])
         ->name('payments.transbank.return');
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');

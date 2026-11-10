@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { submitOrder } from '../services/api'
+import { savePaymentCartToken } from '../services/cart.service'
 
 const initialForm = {
   customer_name: '',
@@ -37,6 +38,7 @@ export default function useCheckout(cartToken, onClear) {
     try {
       const result = await submitOrder({ ...form, cart_token: cartToken })
       if (result.payment) {
+        savePaymentCartToken(result.order.order_number, cartToken)
         const paymentForm = document.createElement('form')
         paymentForm.method = 'POST'
         paymentForm.action = result.payment.url

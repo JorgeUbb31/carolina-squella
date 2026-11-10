@@ -1,8 +1,8 @@
 import { request } from './api'
 
-export function getProducts(params = {}) {
+export function getProducts(params = {}, options = {}) {
   const query = new URLSearchParams(params)
-  return request(`/admin/products?${query.toString()}`)
+  return request(`/admin/products?${query.toString()}`, options)
 }
 
 export function saveProduct(product, id) {

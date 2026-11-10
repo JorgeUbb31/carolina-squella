@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../services/home.service'
 import { formatRollWidth, getProductUnitLabel } from '../utils/productFormatters'
+import ProductImage from './ProductImage'
 
 export default function ProductCard({ product, index = 0, badge, titleLevel = 2, onAddToCart }) {
   const badgeLabel = badge ?? product.badge ?? (
@@ -11,7 +12,7 @@ export default function ProductCard({ product, index = 0, badge, titleLevel = 2,
   return (
     <article className="product-card reveal-card" style={{ '--delay': `${index * 80}ms` }}>
       <Link to={`/products/${product.slug}`}>
-        <img src={product.image_url} alt={product.name} />
+        <ProductImage src={product.image_url} alt={product.name} />
       </Link>
       <div className="product-body">
         <div className="badge">{badgeLabel}</div>

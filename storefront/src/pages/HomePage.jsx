@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatPrice } from '../services/home.service'
 import useHomePageData from '../hooks/useHomePageData'
 import ProductCard from '../components/ProductCard'
+import ProductImage from '../components/ProductImage'
 import QuoteRequestSection from '../components/QuoteRequestSection'
 
 export default function HomePage({ onAddToCart }) {
@@ -39,10 +40,12 @@ export default function HomePage({ onAddToCart }) {
             <div className="hero-card">
               {loading ? (
                 <p>Cargando imagen...</p>
-              ) : products[0]?.image_url ? (
-                <img src={products[0].image_url} alt={products[0].name} />
-              ) : (
+              ) : products.length === 0 ? (
                 <p>No hay productos disponibles.</p>
+              ) : products[0].image_url ? (
+                <ProductImage src={products[0].image_url} alt={products[0].name} />
+              ) : (
+                <p>Sin imagen destacada.</p>
               )}
             </div>
           </div>

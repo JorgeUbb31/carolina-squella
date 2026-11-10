@@ -36,11 +36,13 @@ return [
     ],
 
     'transbank' => [
-        'environment' => env('TRANSBANK_ENVIRONMENT', 'integration'),
+        'environment' => env('TRANSBANK_ENVIRONMENT', 'production'),
         'commerce_code' => env('TRANSBANK_COMMERCE_CODE'),
         'api_key' => env('TRANSBANK_API_KEY'),
         'storefront_url' => env('STOREFRONT_URL', 'http://localhost:5173'),
-        'payment_expiration_minutes' => 30,
+        'payment_expiration_minutes' => env('TRANSBANK_PAYMENT_EXPIRATION_MINUTES', 30),
+        'bank_transfer_payment_expiration_hours' => env('BANK_TRANSFER_PAYMENT_EXPIRATION_HOURS', 72),
+        'payment_review_alert_email' => env('PAYMENT_REVIEW_ALERT_EMAIL'),
     ],
 
 ];

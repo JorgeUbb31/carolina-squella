@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('orders:expire-transbank')->everyFiveMinutes();
+Schedule::command('orders:reconcile-transbank')->everyFiveMinutes();
