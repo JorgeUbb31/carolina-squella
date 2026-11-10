@@ -31,8 +31,19 @@ class CartController extends Controller
         DB::transaction(function () use ($cart, $data) {
             $cart->items()->delete();
 
+            $products = Product::query()
+                ->whereIn('slug', collect($data['items'])->pluck('slug')->all())
+                ->get()
+                ->keyBy('slug');
+
             foreach ($data['items'] as $item) {
-                $product = Product::query()->where('slug', $item['slug'])->firstOrFail();
+                $product = $products->get($item['slug']);
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        'items' => ["El producto {$item['slug']} no existe."],
+                    ]);
+                }
+
                 if (! $product->is_active || $item['quantity'] > $product->stock) {
                     throw ValidationException::withMessages([
                         'items' => ["{$product->name} no tiene stock suficiente."],
@@ -74,6 +85,7 @@ class CartController extends Controller
                 'price' => $item->product->price,
                 'image_url' => $item->product->image_url,
                 'unit_type' => $item->product->unit_type,
+                'width_cm' => $item->product->width_cm,
                 'stock' => $item->product->stock,
                 'quantity' => $item->quantity,
             ])->values(),

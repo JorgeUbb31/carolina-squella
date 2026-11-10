@@ -64,3 +64,17 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Webpay Plus
+
+The `.env.example` explicitly selects Transbank's integration environment for local development; the application fallback is `production`, which requires the commerce code and API key issued by Transbank. Integration mode is rejected in production. Do not commit credentials.
+
+The backend return URL is generated from `APP_URL`, so it must be reachable over public HTTPS for Transbank callbacks. Set `STOREFRONT_URL` to the public storefront origin. Pending Webpay inventory reservations expire after 30 minutes and bank-transfer reservations after 72 hours. The scheduler reconciles pending Webpay Plus payments with Transbank every five minutes and expires eligible orders; if Transbank cannot be reached, the Webpay order and stock reservation remain pending for a later retry. An `INITIALIZED` payment remains reserved until Transbank resolves it, with a two-hour hard cap to prevent inventory from being held indefinitely. In production, run Laravel's scheduler continuously (`php artisan schedule:work`, or configure the host scheduler to run `php artisan schedule:run` every minute).
+
+Set `PAYMENT_REVIEW_ALERT_EMAIL` to an administrator email address to receive a queued notification when Transbank approves a payment but its details do not match the order. Configure a real mail transport and keep a persistent queue worker running in production (for example, supervised `php artisan queue:work`) so the alert is delivered.
+
+The demo admin account (`test@example.com`) is seeded only in `local` and `testing` environments; production seeding does not create it.
+
+## Quote requests
+
+The storefront saves quote requests in the `quote_requests` table and sends a receipt to the email address entered in the form. Run `php artisan migrate` to create the table. Configure a real mail transport using `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, and related mail settings; with the default `log` mailer the request is stored but no email is delivered.

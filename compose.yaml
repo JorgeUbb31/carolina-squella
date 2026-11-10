@@ -1,0 +1,119 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-carolina_squella}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-carolina_squella}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    working_dir: /var/www/html
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
+    environment:
+      APP_NAME: ${APP_NAME:-Carolina Squella}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-carolina_squella}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      LOG_CHANNEL: stderr
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:5173}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >-
+      sh -c 'if [ ! -f .env ]; then cp .env.example .env; fi
+      && if ! grep -q "^APP_KEY=base64:" .env; then php artisan key:generate --force; fi
+      && php artisan migrate --force
+      && php artisan serve --host=0.0.0.0 --port=8000 --no-reload'
+
+  scheduler:
+    build:
+      context: ./backend
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-carolina_squella}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:5173}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: >-
+      sh -c 'while ! grep -q "^APP_KEY=base64:" .env; do sleep 1; done
+      && php artisan schedule:work'
+
+  admin:
+    build:
+      context: ./admin
+    working_dir: /app
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./admin:/app
+      - admin_node_modules:/app/node_modules
+    env_file:
+      - path: ./admin/.env
+        required: false
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+  storefront:
+    build:
+      context: ./storefront
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./storefront:/app
+      - storefront_node_modules:/app/node_modules
+    env_file:
+      - ./storefront/.env.example
+      - path: ./storefront/.env
+        required: false
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  postgres_data:
+  backend_vendor:
+  admin_node_modules:
+  storefront_node_modules:

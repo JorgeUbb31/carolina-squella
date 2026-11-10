@@ -34,7 +34,18 @@ class AdminProductController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $product = Product::query()->create($this->validatedProductData($request));
+        $product = DB::transaction(function () use ($request) {
+            $product = Product::query()->create($this->validatedProductData($request));
+            $this->recordStockMovement(
+                $product,
+                $request->user()?->id,
+                0,
+                (int) $product->stock,
+                'initial',
+            );
+
+            return $product;
+        });
 
         return response()->json($product->load('category:id,name,slug'), 201);
     }
@@ -47,9 +58,21 @@ class AdminProductController extends Controller
     public function update(Request $request, Product $product): JsonResponse
     {
         $data = $this->validatedProductData($request, $product);
-        $product = DB::transaction(function () use ($product, $data) {
+        $product = DB::transaction(function () use ($product, $data, $request) {
             $lockedProduct = Product::query()->lockForUpdate()->findOrFail($product->id);
+            $stockBefore = (int) $lockedProduct->stock;
             $lockedProduct->update($data);
+            $stockAfter = (int) $lockedProduct->stock;
+
+            if ($stockAfter !== $stockBefore) {
+                $this->recordStockMovement(
+                    $lockedProduct,
+                    $request->user()?->id,
+                    $stockBefore,
+                    $stockAfter,
+                    'manual_adjustment',
+                );
+            }
 
             return $lockedProduct->fresh()->load('category:id,name,slug');
         });
@@ -57,7 +80,7 @@ class AdminProductController extends Controller
         return response()->json($product);
     }
 
-        public function destroy(Product $product): Response
+    public function destroy(Product $product): Response
     {
         DB::transaction(function () use ($product) {
             Product::query()->lockForUpdate()->findOrFail($product->id)->delete();
@@ -94,6 +117,22 @@ class AdminProductController extends Controller
             'unit_type' => ['sometimes', 'string', 'max:50'],
             'image_url' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
+        ]);
+    }
+
+    private function recordStockMovement(
+        Product $product,
+        ?int $userId,
+        int $stockBefore,
+        int $stockAfter,
+        string $reason,
+    ): void {
+        $product->stockMovements()->create([
+            'user_id' => $userId,
+            'quantity_change' => $stockAfter - $stockBefore,
+            'stock_before' => $stockBefore,
+            'stock_after' => $stockAfter,
+            'reason' => $reason,
         ]);
     }
 }

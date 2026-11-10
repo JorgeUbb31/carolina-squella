@@ -1,0 +1,26 @@
+{
+  "name": "carolina-squella-inventory",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run --passWithNoTests",
+    "cypress:open": "cypress open --browser edge",
+    "cypress:run": "cypress run --browser edge"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "cypress": "^16.2.0",
+    "jsdom": "^29.1.1",
+    "vite": "^8.2.2",
+    "vitest": "^4.0.0"
+  }
+}
