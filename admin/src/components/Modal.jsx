@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 
-export default function Modal({ className, eyebrow, title, onClose, children, busy = false }) {
+export default function Modal({ className, eyebrow, title, onClose, children, busy = false, closeOnBackdrop = true }) {
   const titleId = `${className}-title`
   const dialogRef = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -56,7 +56,7 @@ export default function Modal({ className, eyebrow, title, onClose, children, bu
   }, [])
 
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()}>
+      <div className="modal-backdrop" onMouseDown={(event) => closeOnBackdrop && event.target === event.currentTarget && !busy && onClose()}>
       <section ref={dialogRef} className={className} role="dialog" aria-modal="true" aria-busy={busy} aria-labelledby={titleId} tabIndex="-1">
         <header className="modal-head">
           <div><span className="eyebrow">{eyebrow}</span><h2 id={titleId}>{title}</h2></div>

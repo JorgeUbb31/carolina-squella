@@ -88,6 +88,7 @@ class OrderController extends Controller
             $order = Order::query()->create([
                 ...collect($data)->except('cart_token')->all(),
                 'order_number' => 'CS-'.Str::upper(Str::random(10)),
+                'sale_source' => 'online',
                 'status' => 'pending_payment',
                 'cart_token' => $data['cart_token'],
                 'subtotal' => $subtotal,

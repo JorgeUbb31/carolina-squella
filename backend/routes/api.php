@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminQuoteRequestController;
 use App\Http\Controllers\Api\AuthController;
@@ -47,6 +48,9 @@ Route::prefix('v1')->group(function () {
 
             Route::get('quote-requests', [AdminQuoteRequestController::class, 'index'])->name('admin.quote-requests.index');
             Route::patch('quote-requests/{quoteRequest}', [AdminQuoteRequestController::class, 'update'])->name('admin.quote-requests.update');
+
+            Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+            Route::post('orders', [AdminOrderController::class, 'store'])->name('admin.orders.store');
         });
     });
 });
