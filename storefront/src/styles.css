@@ -233,7 +233,8 @@ button:disabled {
 }
 
 .quote-form input,
-.quote-form textarea {
+.quote-form textarea,
+.quote-form select {
   background: #fff;
   border: 1px solid #d8cec5;
   border-radius: 6px;
@@ -248,7 +249,8 @@ button:disabled {
 }
 
 .quote-form input:focus,
-.quote-form textarea:focus {
+.quote-form textarea:focus,
+.quote-form select:focus {
   border-color: var(--clay);
   outline: 2px solid rgba(155, 98, 69, 0.18);
 }
@@ -832,6 +834,41 @@ button:disabled {
   line-height: 1.45;
 }
 
+.quote-items {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+}
+
+.quote-items legend {
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+.quote-item-row {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+}
+
+.quote-item-remove {
+  padding: 10px 14px;
+}
+
+.quote-estimate {
+  border-top: 1px solid var(--line);
+  margin: 0;
+  padding-top: 10px;
+}
+
+.quote-items > small {
+  color: var(--muted);
+}
+
 .form-error {
   background: #fff0ed;
   border-left: 3px solid #b63f2d;
@@ -930,6 +967,11 @@ button:disabled {
   }
 
   .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-item-row {
+    align-items: stretch;
     grid-template-columns: 1fr;
   }
 

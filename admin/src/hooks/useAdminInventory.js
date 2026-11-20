@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   clearToken,
   getCurrentUser,
@@ -105,11 +105,11 @@ export default function useAdminInventory() {
     setUser(loggedInUser)
   }
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     try { await logout() } catch { clearToken() }
     setUser(null)
     setProducts([])
-  }
+  }, [])
 
   async function refreshAdminCategories() {
     categoryRefreshController.current?.abort()

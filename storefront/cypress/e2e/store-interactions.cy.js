@@ -131,14 +131,17 @@ describe('Interacciones de la tienda', () => {
       cy.get('input[name="name"]').type('Jorge Díaz')
       cy.get('input[name="email"]').type('jorge@example.com')
       cy.get('input[name="phone"]').type('+56912345678')
+      cy.get('.quote-item-row select').select('tela-tapiceria-lino')
+      cy.get('.quote-item-row input[type="number"]').clear().type('2')
       cy.get('textarea[name="details"]').type('Necesito cotizar cortinas para dos ventanas.')
-      cy.contains('button', 'Enviar solicitud').click()
+      cy.contains('button', 'Solicitar cotización PDF').click()
 
       cy.wait('@submitQuote').its('request.body').should('deep.equal', {
         name: 'Jorge Díaz',
         email: 'jorge@example.com',
         phone: '+56912345678',
         details: 'Necesito cotizar cortinas para dos ventanas.',
+        items: [{ slug: 'tela-tapiceria-lino', quantity: 2 }],
       })
       cy.contains('Recibimos tu solicitud y enviamos una confirmación a tu correo.').should('be.visible')
     })
@@ -233,6 +236,7 @@ describe('Interacciones de la tienda', () => {
       cy.contains('label', 'Dirección').find('input').type('Av. Providencia 123')
       cy.get('select[name="delivery_region"]').select('Región Metropolitana de Santiago')
       cy.get('select[name="delivery_city"]').select('Santiago')
+      cy.get('select[name="shipping_carrier"]').select('starken')
       cy.contains('button', 'Confirmar pedido').click()
 
       cy.get('[role="alertdialog"]').should('be.visible')
@@ -242,6 +246,7 @@ describe('Interacciones de la tienda', () => {
         expect(body.customer_email).to.equal('jorge@example.com')
         expect(body.payment_method).to.equal('bank_transfer')
         expect(body.delivery_city).to.equal('Santiago')
+        expect(body.shipping_carrier).to.equal('starken')
         expect(body.cart_token).to.be.a('string').and.not.be.empty
       })
       cy.wait('@clearCart')

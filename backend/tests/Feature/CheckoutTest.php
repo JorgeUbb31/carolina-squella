@@ -1,11 +1,13 @@
 <?php
 
 use App\Contracts\TransbankGateway;
+use App\Mail\OrderReceiptMail;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Notifications\TransbankPaymentReviewNotification;
 use App\Services\Transbank\TransbankOrderReconciler;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -43,13 +45,19 @@ it('creates an order, saves its items, and decrements stock', function () {
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'bank_transfer',
     ]);
 
     $response->assertCreated()
         ->assertJsonPath('order.subtotal', '24000.00')
         ->assertJsonCount(1, 'order.items');
-    $this->assertDatabaseHas('orders', ['customer_email' => 'cliente@example.com', 'total' => 24000]);
+    $this->assertDatabaseHas('orders', [
+        'customer_email' => 'cliente@example.com',
+        'shipping_carrier' => 'starken',
+        'shipping_total' => 0,
+        'total' => 24000,
+    ]);
     $this->assertDatabaseHas('order_items', ['product_id' => $product->id, 'quantity' => 2]);
     $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 3]);
     $this->assertDatabaseCount('cart_items', 0);
@@ -89,11 +97,33 @@ it('rejects checkout when stock changes after the cart was saved', function () {
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'bank_transfer',
     ])->assertUnprocessable();
 
     $this->assertDatabaseCount('orders', 0);
     $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 0]);
+});
+
+it('rejects unsupported shipping carriers before creating an order', function () {
+    /** @var TestCase $this */
+    [$product, $cartToken] = createWebpayCart($this);
+
+    $this->postJson('/api/v1/orders', [
+        'cart_token' => $cartToken,
+        'customer_name' => 'Carolina Cliente',
+        'customer_email' => 'cliente@example.com',
+        'customer_phone' => '+56912345678',
+        'delivery_address' => 'Av. Principal 123',
+        'delivery_city' => 'Santiago',
+        'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'transportista-invalido',
+        'payment_method' => 'bank_transfer',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('shipping_carrier');
+
+    $this->assertDatabaseCount('orders', 0);
+    $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 5]);
 });
 
 it('creates a Webpay payment and reserves inventory until its result', function () {
@@ -116,6 +146,7 @@ it('creates a Webpay payment and reserves inventory until its result', function 
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'webpay_plus',
     ]);
 
@@ -151,6 +182,7 @@ it('rejects a second Webpay order for a cart with a pending payment', function (
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'webpay_plus',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('cart');
@@ -177,6 +209,7 @@ it('rejects bank transfer after a pending Webpay order for the same cart', funct
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'bank_transfer',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('cart');
@@ -197,6 +230,7 @@ it('rejects Webpay after a pending bank transfer order for the same cart', funct
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'bank_transfer',
     ])->assertCreated();
 
@@ -214,6 +248,7 @@ it('rejects Webpay after a pending bank transfer order for the same cart', funct
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'webpay_plus',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors('cart');
@@ -224,6 +259,8 @@ it('rejects Webpay after a pending bank transfer order for the same cart', funct
 
 it('confirms an authorized or captured Webpay payment only when its order details match', function (string $status) {
     /** @var TestCase $this */
+    Mail::fake();
+
     $gateway = Mockery::mock(TransbankGateway::class);
     $gateway->shouldReceive('create')->once()
         ->andReturn(['token' => 'webpay-token', 'url' => 'https://webpay.example/']);
@@ -258,6 +295,12 @@ it('confirms an authorized or captured Webpay payment only when its order detail
         ->assertJsonPath('status', 'paid')
         ->assertJsonMissingPath('cart_token');
     $this->getJson('/api/v1/orders/'.$order->id.'/payment-status')->assertNotFound();
+
+    Mail::assertSent(OrderReceiptMail::class, 1);
+    Mail::assertSent(OrderReceiptMail::class, fn (OrderReceiptMail $mail) => $mail->hasTo('cliente@example.com'));
+    $receipt = Mail::sent(OrderReceiptMail::class)->first();
+    $this->assertStringStartsWith('%PDF', $receipt->pdf());
+    $this->assertNotNull($order->fresh()->receipt_email_sent_at);
 })->with(['AUTHORIZED', 'CAPTURED']);
 
 it('confirms an authorized Webpay payment returned after the reservation deadline', function () {
@@ -587,6 +630,8 @@ it('reconciles a previously initialized Webpay transaction after it becomes auth
 
 it('reconciles an approved Webpay transaction after a callback timeout', function () {
     /** @var TestCase $this */
+    Mail::fake();
+
     $gateway = Mockery::mock(TransbankGateway::class);
     $gateway->shouldReceive('create')->once()
         ->andReturn(['token' => 'webpay-token', 'url' => 'https://webpay.example/']);
@@ -613,6 +658,27 @@ it('reconciles an approved Webpay transaction after a callback timeout', functio
     ]);
     $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 3]);
     $this->assertDatabaseCount('cart_items', 0);
+    Mail::assertSent(OrderReceiptMail::class, 1);
+});
+
+it('retries sending receipts for paid Webpay orders without sending duplicates', function () {
+    /** @var TestCase $this */
+    Mail::fake();
+
+    $gateway = Mockery::mock(TransbankGateway::class);
+    $gateway->shouldReceive('create')->once()
+        ->andReturn(['token' => 'webpay-token', 'url' => 'https://webpay.example/']);
+    $this->app->instance(TransbankGateway::class, $gateway);
+
+    [, $cartToken] = createWebpayCart($this);
+    $order = createWebpayOrder($this, $cartToken);
+    $order->update(['status' => 'paid', 'paid_at' => now()]);
+
+    $this->artisan('orders:send-paid-receipts')->assertSuccessful();
+    $this->artisan('orders:send-paid-receipts')->assertSuccessful();
+
+    Mail::assertSent(OrderReceiptMail::class, 1);
+    $this->assertNotNull($order->fresh()->receipt_email_sent_at);
 });
 
 it('keeps an expired Webpay order pending when Transbank status is unavailable', function () {
@@ -650,6 +716,7 @@ it('releases reserved stock when creating a Webpay transaction fails', function 
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'webpay_plus',
     ])->assertStatus(502);
 
@@ -695,6 +762,7 @@ function createWebpayOrder(TestCase $test, string $cartToken): Order
         'delivery_address' => 'Av. Principal 123',
         'delivery_city' => 'Santiago',
         'delivery_region' => 'Metropolitana',
+        'shipping_carrier' => 'starken',
         'payment_method' => 'webpay_plus',
     ]);
 

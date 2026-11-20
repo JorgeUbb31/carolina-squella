@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CirclePlus,
   DoorOpen,
+  FileText,
   LoaderCircle,
   Pencil,
   Search,
@@ -17,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import { formatFabricWidth, INVENTORY_PAGE_SIZE, LOW_STOCK_THRESHOLD } from '../config/inventory'
+import QuoteRequestsPage from './QuoteRequestsPage'
 
 function getStockClass(value) {
   const stock = Number(value ?? 0)
@@ -103,11 +105,13 @@ export default function InventoryPage({
         <a className="sidebar-brand" href="#inventory"><span className="brand-mark">CS</span><span>CAROLINA<br /><b>SQUELLA</b></span></a>
         <button className={`side-link ${activeSection === 'products' ? 'side-link-active' : ''}`} type="button" onClick={() => setActiveSection('products')}><Boxes size={18} /><span>Inventario</span><span className="side-count">{pagination.total}</span></button>
         <button className={`side-link ${activeSection === 'categories' ? 'side-link-active' : ''}`} type="button" onClick={() => setActiveSection('categories')}><Tags size={18} /><span>Categorías</span><span className="side-count">{adminCategoriesLoading ? <LoaderCircle className="spin" size={13} aria-label="Cargando categorías" /> : adminCategories.length}</span></button>
+        <button className={`side-link ${activeSection === 'quotes' ? 'side-link-active' : ''}`} type="button" aria-label="Cotizaciones" title="Cotizaciones" onClick={() => setActiveSection('quotes')}><FileText size={18} /><span>Cotizaciones</span></button>
         <div className="sidebar-bottom"><div className="user-chip"><span className="user-avatar">{(user.name || user.email || 'A').slice(0, 1).toUpperCase()}</span><span className="user-info"><b>{user.name || 'Administración'}</b><small>{user.email}</small></span></div><button className="logout-button" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><DoorOpen size={18} /></button></div>
       </aside>
 
       <main className="main-content" id="inventory">
         <section className="page-content">
+          {activeSection === 'quotes' ? <QuoteRequestsPage onSessionExpired={onLogout} /> : <>
           <div className="page-heading"><div><h1>{activeSection === 'products' ? 'Inventario.' : 'Categorías.'}</h1></div><button className="button button-primary" onClick={activeSection === 'products' ? onCreateProduct : onCreateCategory}><CirclePlus size={18} />{activeSection === 'products' ? 'Nuevo producto' : 'Nueva categoría'}</button></div>
 
           {activeSection === 'products' ? <section className="inventory-section">
@@ -164,6 +168,7 @@ export default function InventoryPage({
               </div>
             </section>
           )}
+          </>}
         </section>
       </main>
     </div>
