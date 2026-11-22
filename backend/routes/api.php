@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminInventoryControlController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminQuoteRequestController;
@@ -51,6 +52,13 @@ Route::prefix('v1')->group(function () {
 
             Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
             Route::post('orders', [AdminOrderController::class, 'store'])->name('admin.orders.store');
+
+            Route::get('inventory-controls', [AdminInventoryControlController::class, 'index'])->name('admin.inventory-controls.index');
+            Route::post('inventory-controls', [AdminInventoryControlController::class, 'store'])->name('admin.inventory-controls.store');
+            Route::get('inventory-controls/{inventoryControl}/report', [AdminInventoryControlController::class, 'report'])->name('admin.inventory-controls.report');
+            Route::get('inventory-controls/{inventoryControl}', [AdminInventoryControlController::class, 'show'])->name('admin.inventory-controls.show');
+            Route::patch('inventory-controls/{inventoryControl}/items/{item}', [AdminInventoryControlController::class, 'updateItem'])->name('admin.inventory-controls.items.update');
+            Route::post('inventory-controls/{inventoryControl}/complete', [AdminInventoryControlController::class, 'complete'])->name('admin.inventory-controls.complete');
         });
     });
 });
