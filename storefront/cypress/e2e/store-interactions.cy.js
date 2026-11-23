@@ -124,8 +124,20 @@ describe('Interacciones de la tienda', () => {
         },
       }).as('submitQuote')
 
+      cy.intercept('GET', '**/api/v1/products?page=*', {
+        data: products,
+        current_page: 1,
+        last_page: 1,
+        total: products.length,
+      }).as('quoteProducts')
+
       cy.visit('/')
       cy.wait('@loadCart')
+      cy.contains('button', 'Solicitar cotización').click()
+      cy.get('#solicitar-cotizacion').should('be.visible')
+      cy.get('#solicitar-cotizacion').should('have.attr', 'role', 'dialog')
+      cy.get('.quote-modal-backdrop').click(5, 5)
+      cy.get('#solicitar-cotizacion').should('not.exist')
       cy.contains('button', 'Solicitar cotización').click()
       cy.get('#solicitar-cotizacion').should('be.visible')
       cy.get('input[name="name"]').type('Jorge Díaz')
@@ -144,6 +156,8 @@ describe('Interacciones de la tienda', () => {
         items: [{ slug: 'tela-tapiceria-lino', quantity: 2 }],
       })
       cy.contains('Recibimos tu solicitud y enviamos una confirmación a tu correo.').should('be.visible')
+      cy.get('#solicitar-cotizacion').focus().type('{esc}')
+      cy.get('#solicitar-cotizacion').should('not.exist')
     })
   })
 
