@@ -1,4 +1,5 @@
 import { CHILE_REGIONS } from '../data/chileLocations'
+import { SHIPPING_CARRIERS } from '../data/shippingCarriers'
 
 export default function CheckoutForm({ form, onChange, error, submitting, disabled, onSubmit }) {
   const selectedRegion = CHILE_REGIONS.find((region) => region.name === form.delivery_region)
@@ -64,6 +65,20 @@ export default function CheckoutForm({ form, onChange, error, submitting, disabl
           </select>
         </label>
       </div>
+      <label>Empresa de envío
+        <select
+          name="shipping_carrier"
+          required
+          value={form.shipping_carrier}
+          onChange={(event) => onChange('shipping_carrier', event.target.value)}
+        >
+          <option value="">Selecciona una empresa</option>
+          {SHIPPING_CARRIERS.map((carrier) => (
+            <option key={carrier.value} value={carrier.value}>{carrier.label}</option>
+          ))}
+        </select>
+        <small>El envío no está incluido en el total y lo pagas directamente a la empresa elegida.</small>
+      </label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-btn checkout-submit" type="submit" disabled={submitting || disabled}>
         {submitting ? 'Registrando pedido...' : 'Confirmar pedido'}

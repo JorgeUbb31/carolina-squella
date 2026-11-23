@@ -9,12 +9,14 @@ class Order extends Model
 {
     protected $fillable = [
         'order_number',
+        'sale_source',
         'customer_name',
         'customer_email',
         'customer_phone',
         'delivery_address',
         'delivery_city',
         'delivery_region',
+        'shipping_carrier',
         'payment_method',
         'status',
         'cart_token',
@@ -27,6 +29,8 @@ class Order extends Model
         'transbank_authorization_code',
         'paid_at',
         'payment_expires_at',
+        'receipt_email_sent_at',
+        'receipt_email_claimed_at',
     ];
 
     protected function casts(): array
@@ -37,6 +41,8 @@ class Order extends Model
             'total' => 'decimal:2',
             'paid_at' => 'datetime',
             'payment_expires_at' => 'datetime',
+            'receipt_email_sent_at' => 'datetime',
+            'receipt_email_claimed_at' => 'datetime',
         ];
     }
 

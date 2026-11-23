@@ -12,7 +12,7 @@ export default function CheckoutOrderSummary({ items, total }) {
         </div>
       ))}
       <div className="summary-total"><span>Subtotal</span><strong>{formatPrice(total)}</strong></div>
-      <p>El costo del despacho se informará antes de coordinar el envío.</p>
+      <p>El envío no está incluido en el total; lo pagas directamente a la empresa de transporte.</p>
     </aside>
   )
 }

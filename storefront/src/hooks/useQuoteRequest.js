@@ -11,10 +11,11 @@ export default function useQuoteRequest() {
     setResult('')
   }
 
-  const submit = async (event) => {
+  const submit = async (event, items) => {
     event.preventDefault()
     const form = event.currentTarget
     const quoteRequest = Object.fromEntries(new FormData(form))
+    quoteRequest.items = items.map(({ slug, quantity }) => ({ slug, quantity: Number(quantity) }))
     setSubmitting(true)
     setError('')
 

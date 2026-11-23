@@ -77,4 +77,10 @@ The demo admin account (`test@example.com`) is seeded only in `local` and `testi
 
 ## Quote requests
 
-The storefront saves quote requests in the `quote_requests` table and sends a receipt to the email address entered in the form. Run `php artisan migrate` to create the table. Configure a real mail transport using `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, and related mail settings; with the default `log` mailer the request is stored but no email is delivered.
+The storefront lets customers choose products and quantities. The API reads prices from the database, stores the request and its line items, then emails a PDF with the quote number and validity. Requests do not reserve stock; verify availability before confirming. The admin app lists requests and allows their status to be updated.
+
+Run `php artisan migrate` to create the quote line items and shipping carrier columns. Configure a real mail transport using `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, and related mail settings. With the default `log` mailer, the request is stored but no email is delivered. `QUOTE_VALIDITY_DAYS` controls the PDF validity (default 3); `QUOTE_COPY_EMAIL` optionally receives a blind copy.
+
+The checkout requires the customer to select a transport company. The configured companies are in `config/shipping.php`; delivery cost remains outside the store total and is paid by the recipient directly to the chosen carrier.
+
+After a Webpay Plus payment is confirmed, the backend emails the customer address saved during checkout a PDF purchase receipt. This receipt is not an official SII electronic tax document. Configure a real mail transport; when mail delivery fails, the scheduler retries unsent receipts with `orders:send-paid-receipts`.
