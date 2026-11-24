@@ -45,4 +45,9 @@ return [
         'payment_review_alert_email' => env('PAYMENT_REVIEW_ALERT_EMAIL'),
     ],
 
+    'quotes' => [
+        'validity_days' => env('QUOTE_VALIDITY_DAYS', 3),
+        'copy_email' => env('QUOTE_COPY_EMAIL'),
+    ],
+
 ];

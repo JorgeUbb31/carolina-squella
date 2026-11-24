@@ -9,6 +9,7 @@ const initialForm = {
   delivery_address: '',
   delivery_city: '',
   delivery_region: '',
+  shipping_carrier: '',
   payment_method: 'bank_transfer'
 }
 

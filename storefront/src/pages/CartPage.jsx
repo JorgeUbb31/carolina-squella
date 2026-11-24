@@ -20,7 +20,7 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
         <section className="order-confirmation" role="status">
           <span className="eyebrow">Pedido registrado</span>
           <h2>Gracias por tu compra</h2>
-          <p>Tu número de pedido es <strong>{checkout.completedOrder.order_number}</strong>. Te contactaremos para coordinar el pago por transferencia y confirmar el despacho.</p>
+          <p>Tu número de pedido es <strong>{checkout.completedOrder.order_number}</strong>. Te contactaremos para coordinar el pago por transferencia y el envío con la empresa elegida.</p>
           <Link className="secondary-btn" to="/">Volver a la tienda</Link>
         </section>
       )}
@@ -44,7 +44,7 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
             <aside className="cart-summary">
               <h2>Resumen de compra</h2>
               <div className="summary-total"><span>Subtotal</span><strong>{formatPrice(total)}</strong></div>
-              <p>El despacho se cotiza y confirma contigo antes del pago.</p>
+              <p>El envío no está incluido: lo pagas directamente a la empresa de transporte.</p>
               <button
                 className="primary-btn checkout-submit"
                 type="button"
@@ -60,7 +60,7 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
             <section className="cart-summary checkout-details">
               <button className="secondary-btn checkout-back" type="button" onClick={() => checkout.setStep('cart')}>Volver al carrito</button>
               <h2>Datos de entrega</h2>
-              <p>Ingresa tus datos para preparar el pedido. El costo del despacho se cotiza contigo.</p>
+              <p>Ingresa tus datos para preparar el pedido. Elige la empresa de envío; su costo lo pagas tú.</p>
               <CheckoutForm
                 form={checkout.form}
                 onChange={checkout.updateField}
@@ -78,6 +78,7 @@ export default function CartPage({ cartItems, cartToken, cartError, onUpdateQuan
         <ShippingNotice
           submitting={checkout.submitting}
           paymentMethod={checkout.form.payment_method}
+          shippingCarrier={checkout.form.shipping_carrier ? checkout.form.shipping_carrier : 'la empresa seleccionada'}
           onCancel={() => checkout.setShowShippingNotice(false)}
           onConfirm={checkout.confirmOrder}
         />

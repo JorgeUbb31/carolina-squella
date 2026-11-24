@@ -7,6 +7,7 @@ export default function CategoryModal({ category, onClose, onSave }) {
   const [form, setForm] = useState(() => ({
     name: category?.name || '',
     description: category?.description || '',
+    sale_unit: category?.sale_unit || 'unit',
     is_active: category?.is_active ?? true,
   }))
   const [error, setError] = useState('')
@@ -36,8 +37,15 @@ export default function CategoryModal({ category, onClose, onSave }) {
     >
         <form onSubmit={handleSubmit}>
           <div className="form-grid category-form-grid">
-            <label className="field field-wide">Nombre<input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required maxLength="255" /></label>
-            <label className="field field-wide">Descripción<textarea rows="4" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
+            <label className="field field-wide">Nombre<input placeholder="Ej.: Cortinas" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required maxLength="255" /></label>
+            <label className="field field-wide">Venta por
+              <select value={form.sale_unit} disabled={Boolean(category?.products_count)} onChange={(event) => setForm((current) => ({ ...current, sale_unit: event.target.value }))}>
+                <option value="unit">Unidad</option>
+                <option value="meter">Metro</option>
+              </select>
+              {Boolean(category?.products_count) && <small>La unidad queda fija mientras existan productos asociados.</small>}
+            </label>
+            <label className="field field-wide">Descripción<textarea rows="4" placeholder="Describe brevemente los productos de esta categoría." value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></label>
           </div>
           <label className="check-option category-active-option"><input type="checkbox" checked={form.is_active} onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))} /><span className="check-box"><Check size={13} /></span>Categoría activa</label>
           {error && <p className="form-error"><AlertCircle size={16} />{error}</p>}

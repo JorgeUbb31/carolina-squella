@@ -4,6 +4,7 @@ namespace App\Services\Transbank;
 
 use App\Contracts\TransbankGateway;
 use App\Models\Order;
+use App\Services\Orders\OrderReceiptSender;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -16,6 +17,7 @@ class TransbankOrderReconciler
         private readonly TransbankGateway $transbank,
         private readonly OrderStockReservation $stockReservation,
         private readonly TransbankPaymentReviewNotifier $paymentReviewNotifier,
+        private readonly OrderReceiptSender $receiptSender,
     ) {}
 
     public function expireBankTransfer(Order $order): void
@@ -62,12 +64,12 @@ class TransbankOrderReconciler
             return;
         }
 
-        DB::transaction(function () use ($order, $payment, $expireIfUnapproved) {
+        $wasPaid = DB::transaction(function () use ($order, $payment, $expireIfUnapproved) {
             $lockedOrder = Order::query()->lockForUpdate()->find($order->id);
             if (! $lockedOrder
                 || $lockedOrder->status !== 'pending_payment'
                 || $lockedOrder->transbank_token !== $order->transbank_token) {
-                return;
+                return false;
             }
 
             $authorized = in_array($payment['status'] ?? null, ['AUTHORIZED', 'CAPTURED'], true)
@@ -83,9 +85,11 @@ class TransbankOrderReconciler
                     ]);
                     $lockedOrder->update(['status' => 'payment_review']);
                     $this->paymentReviewNotifier->notify($lockedOrder, $payment);
+
+                    return false;
                 }
 
-                return;
+                return true;
             }
 
             $status = $payment['status'] ?? null;
@@ -114,6 +118,12 @@ class TransbankOrderReconciler
             if ($expireIfUnapproved && $lockedOrder->payment_expires_at?->isPast()) {
                 $this->stockReservation->expire($lockedOrder);
             }
+
+            return false;
         });
+
+        if ($wasPaid) {
+            $this->receiptSender->sendIfPaid($order->id);
+        }
     }
 }

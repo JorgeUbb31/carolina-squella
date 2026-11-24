@@ -6,6 +6,7 @@ use App\Contracts\TransbankGateway;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Services\Orders\OrderReceiptSender;
 use App\Services\Transbank\OrderStockReservation;
 use App\Services\Transbank\TransbankPaymentReviewNotifier;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -25,6 +27,7 @@ class OrderController extends Controller
         private readonly TransbankGateway $transbank,
         private readonly OrderStockReservation $stockReservation,
         private readonly TransbankPaymentReviewNotifier $paymentReviewNotifier,
+        private readonly OrderReceiptSender $receiptSender,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -37,6 +40,7 @@ class OrderController extends Controller
             'delivery_address' => ['required', 'string', 'max:255'],
             'delivery_city' => ['required', 'string', 'max:120'],
             'delivery_region' => ['required', 'string', 'max:120'],
+            'shipping_carrier' => ['required', Rule::in(array_keys(config('shipping.carriers')))],
             'payment_method' => ['required', 'in:bank_transfer,webpay_plus'],
         ]);
 
@@ -84,6 +88,7 @@ class OrderController extends Controller
             $order = Order::query()->create([
                 ...collect($data)->except('cart_token')->all(),
                 'order_number' => 'CS-'.Str::upper(Str::random(10)),
+                'sale_source' => 'online',
                 'status' => 'pending_payment',
                 'cart_token' => $data['cart_token'],
                 'subtotal' => $subtotal,
@@ -150,6 +155,8 @@ class OrderController extends Controller
         }
 
         if ($order->status === 'paid') {
+            $this->receiptSender->sendIfPaid($order->id);
+
             return $this->paymentResultRedirect('approved', $order->order_number);
         }
 
@@ -261,6 +268,10 @@ class OrderController extends Controller
             return ['status' => 'pending', 'order_number' => $lockedOrder->order_number];
         });
 
+        if ($result['status'] === 'approved') {
+            $this->receiptSender->sendIfPaid($order->id);
+        }
+
         return $this->paymentResultRedirect($result['status'], $result['order_number'] ?? null);
     }
 
@@ -276,7 +287,7 @@ class OrderController extends Controller
     private function startTransbankPayment(Order $order): JsonResponse
     {
         $sessionId = (string) Str::uuid();
-        $expiresAt = now()->addMinutes(config('services.transbank.payment_expiration_minutes'));
+        $expiresAt = now()->addMinutes((int) config('services.transbank.payment_expiration_minutes'));
 
         try {
             $payment = $this->transbank->create(

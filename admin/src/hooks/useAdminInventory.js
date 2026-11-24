@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   clearToken,
   getCurrentUser,
@@ -105,11 +105,11 @@ export default function useAdminInventory() {
     setUser(loggedInUser)
   }
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     try { await logout() } catch { clearToken() }
     setUser(null)
     setProducts([])
-  }
+  }, [])
 
   async function refreshAdminCategories() {
     categoryRefreshController.current?.abort()
@@ -151,8 +151,8 @@ export default function useAdminInventory() {
     }
   }
 
-  async function handleSaveProduct(productData, id) {
-    await saveProduct(productData, id)
+  async function handleSaveProduct(productData, id, imageFile) {
+    await saveProduct(productData, id, imageFile)
     setModalOpen(false)
     setEditingProduct(null)
     setNotice(id ? 'Producto actualizado.' : 'Producto creado correctamente.')

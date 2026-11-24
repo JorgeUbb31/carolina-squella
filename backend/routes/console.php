@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('orders:expire-transbank')->everyFiveMinutes();
 Schedule::command('orders:reconcile-transbank')->everyFiveMinutes();
+Schedule::command('orders:send-paid-receipts')->everyFiveMinutes();
