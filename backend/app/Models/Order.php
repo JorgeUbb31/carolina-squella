@@ -11,6 +11,7 @@ class Order extends Model
         'order_number',
         'sale_source',
         'customer_name',
+        'customer_rut',
         'customer_email',
         'customer_phone',
         'delivery_address',

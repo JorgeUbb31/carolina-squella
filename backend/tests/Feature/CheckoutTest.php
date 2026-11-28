@@ -519,6 +519,39 @@ it('keeps an initialized payment pending until Transbank resolves it after the e
     $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 3]);
 });
 
+it('cancels an online pending order after three days and releases stock', function () {
+    [$product, $cartToken] = createWebpayCart($this);
+    $order = createWebpayOrder($this, $cartToken);
+    $order->forceFill([
+        'created_at' => now()->subDays(4),
+        'payment_expires_at' => now()->subDays(4),
+    ])->saveQuietly();
+
+    $this->artisan('orders:expire-transbank')->assertSuccessful();
+
+    $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'payment_cancelled']);
+    $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 5]);
+    $this->assertDatabaseHas('stock_movements', [
+        'product_id' => $product->id,
+        'reason' => 'payment_cancelled',
+        'quantity_change' => 2,
+    ]);
+});
+
+it('keeps an online pending order younger than three days pending', function () {
+    [$product, $cartToken] = createWebpayCart($this);
+    $order = createWebpayOrder($this, $cartToken);
+    $order->forceFill([
+        'created_at' => now()->subDays(2),
+        'payment_expires_at' => now()->addDay(),
+    ])->saveQuietly();
+
+    $this->artisan('orders:expire-transbank')->assertSuccessful();
+
+    $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending_payment']);
+    $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 3]);
+});
+
 it('releases stock for an initialized Webpay order older than the hard cap', function () {
     /** @var TestCase $this */
     $gateway = Mockery::mock(TransbankGateway::class);
