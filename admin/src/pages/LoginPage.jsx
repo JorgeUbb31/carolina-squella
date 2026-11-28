@@ -31,9 +31,9 @@ export default function LoginPage({ onLogin }) {
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <label htmlFor="email">Correo electrónico</label>
-          <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <input id="email" type="email" placeholder="correo@ejemplo.cl" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
           <label htmlFor="password">Contraseña</label>
-          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          <input id="password" type="password" placeholder="Ingresa tu contraseña" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           {error && <p className="form-error"><AlertCircle size={16} />{error}</p>}
           <button className="button button-primary login-submit" type="submit" disabled={busy}>
             {busy ? <LoaderCircle className="spin" size={18} /> : <LogIn size={18} />}

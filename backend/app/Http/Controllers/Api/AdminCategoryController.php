@@ -58,11 +58,23 @@ class AdminCategoryController extends Controller
             $slugRule->ignore($category->id);
         }
 
-        return $request->validate([
+        $data = $request->validate([
             'name' => [$required, 'string', 'max:255'],
             'slug' => [$required, 'string', 'max:255', $slugRule],
             'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'sale_unit' => ['sometimes', Rule::in(['unit', 'meter'])],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        if ($category
+            && isset($data['sale_unit'])
+            && $data['sale_unit'] !== $category->sale_unit
+            && $category->products()->exists()) {
+            throw ValidationException::withMessages([
+                'sale_unit' => ['No se puede cambiar la unidad de venta mientras haya productos asociados.'],
+            ]);
+        }
+
+        return $data;
     }
 }

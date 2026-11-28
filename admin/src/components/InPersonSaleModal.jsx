@@ -40,11 +40,11 @@ export default function InPersonSaleModal({
           </label>
           <label className="field">
             <span>Correo</span>
-            <input type="email" value={form.customer_email} onChange={(event) => onFormChange('customer_email', event.target.value)} />
+            <input type="email" placeholder="correo@ejemplo.cl" value={form.customer_email} onChange={(event) => onFormChange('customer_email', event.target.value)} />
           </label>
           <label className="field">
             <span>Teléfono</span>
-            <input value={form.customer_phone} onChange={(event) => onFormChange('customer_phone', event.target.value)} />
+            <input placeholder="+56 9 1234 5678" value={form.customer_phone} onChange={(event) => onFormChange('customer_phone', event.target.value)} />
           </label>
           <label className="field">
             <span>Método de pago</span>
