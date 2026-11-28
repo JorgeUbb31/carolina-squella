@@ -11,18 +11,17 @@ export default function useQuoteRequest() {
     setResult('')
   }
 
-  const submit = async (event, items) => {
-    event.preventDefault()
-    const form = event.currentTarget
-    const quoteRequest = Object.fromEntries(new FormData(form))
-    quoteRequest.items = items.map(({ slug, quantity }) => ({ slug, quantity: Number(quantity) }))
+  const submit = async (items, quoteRequest) => {
+    const payload = {
+      ...quoteRequest,
+      items: items.map(({ slug, quantity }) => ({ slug, quantity: Number(quantity) })),
+    }
     setSubmitting(true)
     setError('')
 
     try {
-      const response = await submitQuoteRequest(quoteRequest)
+      const response = await submitQuoteRequest(payload)
       setResult(response.message)
-      form.reset()
     } catch (submitError) {
       setError(submitError.message)
     } finally {

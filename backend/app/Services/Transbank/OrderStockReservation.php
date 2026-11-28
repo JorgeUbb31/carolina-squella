@@ -35,6 +35,12 @@ class OrderStockReservation
         $order->update(['status' => 'payment_expired']);
     }
 
+    public function cancel(Order $order): void
+    {
+        $this->release($order, 'payment_cancelled');
+        $order->update(['status' => 'payment_cancelled']);
+    }
+
     public function confirm(Order $order, array $payment): bool
     {
         $authorized = in_array($payment['status'] ?? null, ['AUTHORIZED', 'CAPTURED'], true)

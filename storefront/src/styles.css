@@ -902,9 +902,24 @@ button:disabled {
   line-height: 1.45;
 }
 
+.phone-input-group {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 7px;
+  width: 100%;
+}
+
+.phone-input-group select,
+.phone-input-group input {
+  min-width: 0;
+  width: 100%;
+}
+
+.phone-input-group select {
+  text-align: center;
+}
+
 .quote-items {
-  border: 1px solid var(--line);
-  border-radius: 8px;
   display: grid;
   gap: 12px;
   margin: 0;
@@ -931,6 +946,73 @@ button:disabled {
   border-top: 1px solid var(--line);
   margin: 0;
   padding-top: 10px;
+}
+
+.quote-review {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.quote-review > p:first-child {
+  color: var(--muted);
+  margin: 0;
+}
+
+.quote-review-data {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--linen);
+}
+
+.quote-review-data dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.quote-review-data dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.quote-review-details {
+  color: var(--ink);
+}
+
+.quote-review-details p {
+  margin: 5px 0 0;
+  white-space: pre-wrap;
+}
+
+.quote-review-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quote-review-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.quote-review-items strong {
+  white-space: nowrap;
+}
+
+.quote-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .quote-items > small {
@@ -1006,6 +1088,19 @@ button:disabled {
 }
 
 @media (max-width: 700px) {
+  .quote-review-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .quote-review-actions button {
+    width: 100%;
+  }
+
+  .quote-review-items li {
+    align-items: flex-start;
+  }
+
   .product-detail-grid,
   .cart-layout {
     grid-template-columns: 1fr;

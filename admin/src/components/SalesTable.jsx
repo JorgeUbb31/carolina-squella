@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react'
+import { LoaderCircle, Pencil } from 'lucide-react'
 import { formatCurrency } from '../utils/formatters'
 
 const PAYMENT_LABELS = {
@@ -17,10 +17,10 @@ const STATUS_LABELS = {
   expired: 'Expirada',
 }
 
-export default function SalesTable({ sales, loading }) {
+export default function SalesTable({ sales, loading, onEditSale }) {
   return (
     <div className="table-wrap">
-      <table className="sales-table">
+      <table className="sales-table"> 
         <thead>
           <tr>
             <th>VENTA</th>
@@ -29,12 +29,13 @@ export default function SalesTable({ sales, loading }) {
             <th>PAGO</th>
             <th>ESTADO</th>
             <th>TOTAL</th>
+            {onEditSale && <th><span className="sr-only">Acciones</span></th>}
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td className="table-state" colSpan="6">
+              <td className="table-state" colSpan={onEditSale ? 7 : 6}>
                 <LoaderCircle className="spin" size={20} />Cargando ventas…
               </td>
             </tr>
@@ -53,16 +54,17 @@ export default function SalesTable({ sales, loading }) {
                   </div>
                 </details>
               </td>
-              <td>{sale.customer_name}</td>
+              <td><span className="sales-customer-name">{sale.customer_name}</span>{sale.customer_rut && <small className="sales-customer-rut">{sale.customer_rut}</small>}</td>
               <td>{new Date(sale.created_at).toLocaleDateString('es-CL')}</td>
               <td><span className="sale-payment">{PAYMENT_LABELS[sale.payment_method] || sale.payment_method}</span></td>
               <td><span className={`sale-status sale-status-${sale.status || 'paid'}`}>{STATUS_LABELS[sale.status] || 'Pagada'}</span></td>
               <td className="price-cell">{formatCurrency(sale.total)}</td>
+              {onEditSale && <td><button className="icon-button" type="button" title="Editar venta presencial" aria-label={`Editar venta ${sale.order_number}`} onClick={() => onEditSale(sale)}><Pencil size={16} /></button></td>}
             </tr>
           ))}
           {!loading && sales.length === 0 && (
             <tr>
-              <td className="table-state empty-state" colSpan="6">No hay ventas para mostrar.</td>
+              <td className="table-state empty-state" colSpan={onEditSale ? 7 : 6}>No hay ventas para mostrar.</td>
             </tr>
           )}
         </tbody>
