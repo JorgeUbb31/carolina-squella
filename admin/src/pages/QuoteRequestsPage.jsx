@@ -49,6 +49,8 @@ export default function QuoteRequestsPage({ onSessionExpired }) {
   }, [page, status, onSessionExpired])
 
   async function handleStatusChange(quote, nextStatus) {
+    if (quote.status === 'closed') return
+
     setSavingId(quote.id)
     setError('')
     setNotice('')
@@ -121,7 +123,7 @@ export default function QuoteRequestsPage({ onSessionExpired }) {
                   <td>
                     <select
                       aria-label={`Estado de ${quote.number}`}
-                      disabled={savingId === quote.id}
+                      disabled={savingId === quote.id || quote.status === 'closed'}
                       value={quote.status}
                       onChange={(event) => handleStatusChange(quote, event.target.value)}
                     >

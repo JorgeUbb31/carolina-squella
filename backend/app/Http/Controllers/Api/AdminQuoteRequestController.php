@@ -7,6 +7,7 @@ use App\Models\QuoteRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AdminQuoteRequestController extends Controller
 {
@@ -39,6 +40,12 @@ class AdminQuoteRequestController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in(['pending', 'contacted', 'closed'])],
         ]);
+
+        if ($quoteRequest->status === 'closed') {
+            throw ValidationException::withMessages([
+                'status' => 'Una cotización cerrada no puede cambiar de estado.',
+            ]);
+        }
 
         $quoteRequest->update($data);
 
