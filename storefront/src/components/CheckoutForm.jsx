@@ -1,8 +1,10 @@
 import { CHILE_REGIONS } from '../data/chileLocations'
 import { SHIPPING_CARRIERS } from '../data/shippingCarriers'
+import { PHONE_COUNTRY_CODES, parsePhone } from '../utils/phone'
 
 export default function CheckoutForm({ form, onChange, error, submitting, disabled, onSubmit }) {
   const selectedRegion = CHILE_REGIONS.find((region) => region.name === form.delivery_region)
+  const phone = parsePhone(form.customer_phone)
 
   return (
     <form className="checkout-form" onSubmit={onSubmit}>
@@ -33,7 +35,16 @@ export default function CheckoutForm({ form, onChange, error, submitting, disabl
       </fieldset>
       <label>Nombre completo<input required maxLength="160" autoComplete="name" value={form.customer_name} onChange={(event) => onChange('customer_name', event.target.value)} /></label>
       <label>Correo electrónico<input required type="email" maxLength="255" autoComplete="email" value={form.customer_email} onChange={(event) => onChange('customer_email', event.target.value)} /></label>
-      <label>Teléfono<input required type="tel" maxLength="40" autoComplete="tel" value={form.customer_phone} onChange={(event) => onChange('customer_phone', event.target.value)} /></label>
+      <label>Teléfono
+        <span className="phone-input-group">
+          <select aria-label="Prefijo telefónico" value={phone.code} onChange={(event) => onChange('customer_phone', `${event.target.value} ${phone.number}`.trim())}>
+            {PHONE_COUNTRY_CODES.map(({ code, country }) => (
+              <option key={`${country}-${code}`} value={code} title={`${country} (${code})`}>{code}</option>
+            ))}
+          </select>
+          <input required type="tel" maxLength="40" inputMode="tel" autoComplete="tel" placeholder="9 1234 5678" value={phone.number} onChange={(event) => onChange('customer_phone', `${phone.code} ${event.target.value}`.trim())} />
+        </span>
+      </label>
       <label>Dirección<input required maxLength="255" autoComplete="street-address" value={form.delivery_address} onChange={(event) => onChange('delivery_address', event.target.value)} /></label>
       <div className="form-row">
         <label>Región

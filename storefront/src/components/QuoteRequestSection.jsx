@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchAllProducts } from '../services/api'
 import { formatPrice } from '../services/home.service'
 import useQuoteRequest from '../hooks/useQuoteRequest'
+import { PHONE_COUNTRY_CODES } from '../utils/phone'
 
 export default function QuoteRequestSection({ open, onClose }) {
   const quoteDialog = useRef(null)
@@ -13,6 +14,10 @@ export default function QuoteRequestSection({ open, onClose }) {
   const [productsLoading, setProductsLoading] = useState(false)
   const [productsError, setProductsError] = useState('')
   const [items, setItems] = useState([{ id: 0, slug: '', quantity: 1 }])
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewData, setReviewData] = useState(null)
+  const [phoneCode, setPhoneCode] = useState('+56')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const { submitting, error, result, reset, submit } = useQuoteRequest()
 
   useEffect(() => {
@@ -23,6 +28,10 @@ export default function QuoteRequestSection({ open, onClose }) {
     if (submitting) return
     reset()
     setItems([{ id: 0, slug: '', quantity: 1 }])
+    setReviewing(false)
+    setReviewData(null)
+    setPhoneCode('+56')
+    setPhoneNumber('')
     nextItemId.current = 1
     onClose()
   }
@@ -119,6 +128,14 @@ export default function QuoteRequestSection({ open, onClose }) {
     return sum + (Number(product?.price || 0) * Number(item.quantity || 0))
   }, 0)
 
+  const reviewQuote = (event) => {
+    event.preventDefault()
+    const data = Object.fromEntries(new FormData(event.currentTarget))
+    data.phone = phoneNumber ? `${phoneCode} ${phoneNumber}`.trim() : ''
+    setReviewData(data)
+    setReviewing(true)
+  }
+
   return createPortal(
     <div
       className="quote-modal-backdrop"
@@ -144,13 +161,51 @@ export default function QuoteRequestSection({ open, onClose }) {
             <p>{result}</p>
             <button className="primary-btn" type="button" onClick={close}>Listo</button>
           </div>
+        ) : reviewing ? (
+          <div className="quote-review">
+            <p>Revisa que tus datos sean correctos antes de enviar la solicitud.</p>
+            <dl className="quote-review-data">
+              <div><dt>Nombre</dt><dd>{reviewData.name}</dd></div>
+              <div><dt>Correo</dt><dd>{reviewData.email}</dd></div>
+              {reviewData.phone && <div><dt>Teléfono</dt><dd>{reviewData.phone}</dd></div>}
+            </dl>
+            {reviewData.details && <div className="quote-review-details"><strong>Detalles adicionales</strong><p>{reviewData.details}</p></div>}
+            <ul className="quote-review-items">
+              {items.map((item) => {
+                const product = products.find((candidate) => candidate.slug === item.slug)
+                return (
+                  <li key={item.id}>
+                    <span>{product?.name || item.slug} × {item.quantity}</span>
+                    <strong>{formatPrice(Number(product?.price || 0) * Number(item.quantity || 0))}</strong>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="quote-estimate">Total referencial: <strong>{formatPrice(total)}</strong></p>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <div className="quote-review-actions">
+              <button className="secondary-btn" type="button" disabled={submitting} onClick={() => setReviewing(false)}>Volver y editar</button>
+              <button className="primary-btn" type="button" disabled={submitting} onClick={() => submit(items, reviewData)}>
+                {submitting ? 'Enviando...' : 'Confirmar y solicitar'}
+              </button>
+            </div>
+          </div>
         ) : (
           <>
             <p>Elige los productos y cantidades. Guardaremos tu solicitud y enviaremos la cotización en PDF al correo que ingreses.</p>
-            <form className="quote-form" onSubmit={(event) => submit(event, items)}>
+            <form className="quote-form" onSubmit={reviewQuote}>
               <label>Nombre<input name="name" required maxLength="160" autoComplete="name" /></label>
               <label>Correo electrónico<input name="email" type="email" required maxLength="255" autoComplete="email" /></label>
-              <label>Teléfono (opcional)<input name="phone" type="tel" maxLength="40" autoComplete="tel" /></label>
+              <label>Teléfono (opcional)
+                <span className="phone-input-group">
+                  <select aria-label="Prefijo telefónico" value={phoneCode} onChange={(event) => setPhoneCode(event.target.value)}>
+                    {PHONE_COUNTRY_CODES.map(({ code, country }) => (
+                      <option key={`${country}-${code}`} value={code} title={`${country} (${code})`}>{code}</option>
+                    ))}
+                  </select>
+                  <input type="tel" maxLength="40" inputMode="tel" autoComplete="tel" placeholder="9 1234 5678" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
+                </span>
+              </label>
               <fieldset className="quote-items">
                 <legend>Productos</legend>
                 {productsLoading && <p>Cargando productos...</p>}
