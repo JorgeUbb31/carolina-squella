@@ -51,7 +51,10 @@ Route::prefix('v1')->group(function () {
             Route::patch('quote-requests/{quoteRequest}', [AdminQuoteRequestController::class, 'update'])->name('admin.quote-requests.update');
 
             Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+            Route::get('orders/customer', [AdminOrderController::class, 'customerByRut'])->name('admin.orders.customer');
+            Route::get('orders/monthly-report', [AdminOrderController::class, 'monthlyReport'])->name('admin.orders.monthly-report');
             Route::post('orders', [AdminOrderController::class, 'store'])->name('admin.orders.store');
+            Route::put('orders/{order}', [AdminOrderController::class, 'updateInPerson'])->name('admin.orders.update');
 
             Route::get('inventory-controls', [AdminInventoryControlController::class, 'index'])->name('admin.inventory-controls.index');
             Route::post('inventory-controls', [AdminInventoryControlController::class, 'store'])->name('admin.inventory-controls.store');

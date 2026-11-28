@@ -3,6 +3,8 @@ export const LOW_STOCK_THRESHOLD = 5
 export const FABRIC_WIDTHS = [150, 250, 280]
 
 export function isSoldByMeterCategory(category) {
+  if (category?.sale_unit) return category.sale_unit === 'meter'
+
   const categoryText = `${category?.slug || ''} ${category?.name || ''}`
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

@@ -48,6 +48,7 @@ export default function InventoryControlDetail({
                       className="inventory-count-input"
                       type="number"
                       min="0"
+                      placeholder="Ej.: 12"
                       aria-label={`Conteo físico de ${item.product_name}`}
                       disabled={!isEditable || savingItemId === item.id}
                       value={countDrafts[item.id] ?? ''}

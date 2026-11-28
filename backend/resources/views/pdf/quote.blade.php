@@ -39,7 +39,7 @@
         <tbody>
             @foreach ($quote->items as $item)
                 <tr>
-                    <td>{{ $item->product_name }} <span class="muted">({{ $item->unit_type }})</span></td>
+                    <td>{{ $item->product_name }}</td>
                     <td class="quantity">{{ $item->quantity }}</td>
                     <td class="amount">${{ number_format((float) $item->unit_price, 0, ',', '.') }}</td>
                     <td class="amount">${{ number_format((float) $item->line_total, 0, ',', '.') }}</td>

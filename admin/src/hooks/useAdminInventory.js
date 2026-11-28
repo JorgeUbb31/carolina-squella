@@ -151,8 +151,8 @@ export default function useAdminInventory() {
     }
   }
 
-  async function handleSaveProduct(productData, id) {
-    await saveProduct(productData, id)
+  async function handleSaveProduct(productData, id, imageFile) {
+    await saveProduct(productData, id, imageFile)
     setModalOpen(false)
     setEditingProduct(null)
     setNotice(id ? 'Producto actualizado.' : 'Producto creado correctamente.')

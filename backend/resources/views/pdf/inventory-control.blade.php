@@ -5,22 +5,22 @@
     <title>Control de inventario {{ $control->number }}</title>
     <style>
         @page { margin: 28px 30px; }
-        body { color: #293a31; font-family: DejaVu Sans, sans-serif; font-size: 10px; }
-        h1 { margin: 0; color: #244b38; font-size: 22px; }
+        body { color: #252321; font-family: DejaVu Sans, sans-serif; font-size: 10px; }
+        h1 { margin: 0; color: #70432f; font-size: 22px; }
         h2 { margin: 0 0 10px; font-size: 13px; }
-        .header { margin-bottom: 20px; padding-bottom: 13px; border-bottom: 2px solid #739b83; }
-        .muted { color: #748078; }
+        .header { margin-bottom: 20px; padding-bottom: 13px; border-bottom: 2px solid #9b6245; }
+        .muted { color: #706b65; }
         .meta { margin-top: 8px; line-height: 1.6; }
         .summary { width: 100%; margin: 16px 0 22px; border-collapse: collapse; }
-        .summary td { width: 25%; padding: 10px; border: 1px solid #dfe7df; background: #f7faf7; }
+        .summary td { width: 25%; padding: 10px; border: 1px solid #ded8d2; background: #f8f1e8; }
         .summary strong { display: block; margin-top: 4px; font-size: 16px; }
         table.items { width: 100%; border-collapse: collapse; }
-        .items th { padding: 8px 6px; color: #fff; background: #345b46; font-size: 8px; text-align: left; }
-        .items td { padding: 7px 6px; border-bottom: 1px solid #e6ebe6; }
+        .items th { padding: 8px 6px; color: #fffdf9; background: #70432f; font-size: 8px; text-align: left; }
+        .items td { padding: 7px 6px; border-bottom: 1px solid #ded8d2; }
         .number { text-align: right; }
         .negative { color: #a64e3d; }
         .positive { color: #397257; }
-        .footer { margin-top: 18px; color: #748078; font-size: 8px; }
+        .footer { margin-top: 18px; color: #706b65; font-size: 8px; }
     </style>
 </head>
 <body>
